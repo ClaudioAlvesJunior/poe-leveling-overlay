@@ -1,0 +1,23 @@
+/ini/
+/ini 2/
+/exports/
+/build-guide/*
+!/build-guide/precos.ini
+/img/Recognition*/
+/img/GUI/skill-tree/
+/img/GUI/skill-tree 2/
+/data/log.txt
+/data/alt_font*
+/data/Fontin-SmallCaps.ttf
+/add-ons/
+/update/
+/cheat-sheets/
+/cheat-sheets 2/
+*.tmp
+*.log
+*.lnk
+*.zip
+.env
+.env.*
+Thumbs.db
+Desktop.ini

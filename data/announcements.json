@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-11-12 19:15:00",
+  "messages": [
+    [
+      {
+        "priority": 3,
+        "stamp": "2026-11-12 19:15:00",
+        "topic": "updated ggg policies"
+      },
+      "ggg has updated their tool policies with regards to screen reading",
+      "v1.65.3 is now available and it disables affected (sub-)features: check the release notes for more information",
+      "older versions are now technically <use at your own risk>, so you should update as soon as possible",
+      "this update should also be more or less league-launch ready for tomorrow, but there might be another one (so keep an eye out)"
+    ]
+  ]
+}

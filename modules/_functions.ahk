@@ -1,0 +1,725 @@
+﻿Blank(var)
+{
+	If (var = "")
+		Return 1
+	Return 0
+}
+
+CheckClient()
+{
+	local
+	global vars
+
+	WinGet, clients, List, % WinExist("ahk_exe GeForceNOW.exe") ? "ahk_exe GeForceNOW.exe" : "ahk_class POEWindowClass"
+	If (clients > 1)
+		LLK_Error("Multiple game-clients detected. Tool will exit.")
+
+	If WinExist("ahk_exe GeForceNOW.exe")
+		WinGetTitle, title, ahk_exe GeForceNOW.exe
+	Else
+	{
+		WinGet, path, ProcessPath, ahk_class POEWindowClass
+		WinGetTitle, title, ahk_class POEWindowClass
+		path := SubStr(path, 1, InStr(path, "\",, 0) - 1), path := SubStr(path, InStr(path, "\",, 0) + 1)
+	}
+
+	If InStr(title . path, "2") || InStr(title . path, "ii")
+		Return " 2"
+}
+
+DB_Load(database)
+{
+	local
+	global vars, settings, db, json
+
+	If (database = "leveltracker")
+	{
+		lang := settings.general.lang, lang2 := settings.general.lang_client
+		If !vars.poe_version
+			db.leveltracker := {"areas": Json.Load(LLK_FileRead("data\" (FileExist("data\" lang "\[leveltracker] areas.json") ? lang : "english") "\[leveltracker] areas.json"))
+			, "gems": Json.Load(LLK_FileRead("data\" (FileExist("data\" lang "\[leveltracker] gems.json") ? lang : "english") "\[leveltracker] gems.json"))
+			, "trees": {"supported": ["3_29", "3_30"]}}
+		Else
+			db.leveltracker := {"areaIDs": {}, "areas": json.load(LLK_FileRead("data\" (FileExist("data\" lang "\[leveltracker] areas 2.json") ? lang : "english") "\[leveltracker] areas 2.json"))
+			, "trees": {"supported": ["0_4", "0_5"]}, "gems": Json.Load(LLK_FileRead("data\" (FileExist("data\" lang2 "\[leveltracker] gems 2.json") ? lang2 : "english") "\[leveltracker] gems 2.json"))}
+
+		If db.leveltracker.gems.HasKey("renamed")
+			db.leveltracker.renamed_gems := LLK_CloneObject(db.leveltracker.gems.renamed), db.leveltracker.gems.Delete("renamed")
+
+		For iAct, aAct in db.leveltracker.areas
+			For iArea, oArea in aAct
+				If oArea.crafting_recipe
+					db.leveltracker.areaIDs[oArea.id] := oArea.map_name ? {"name": oArea.name, "mapname": oArea.map_name, "craft": oArea.crafting_recipe} : {"name": oArea.name, "craft": oArea.crafting_recipe}
+				Else db.leveltracker.areaIDs[oArea.id] := oArea.map_name ? {"name": oArea.name, "mapname": oArea.map_name} : {"name": oArea.name}
+
+		If !vars.poe_version
+		{
+			For gem in db.leveltracker.gems
+				If !RegExMatch(gem, "i)flask|quest|comment")
+					db.leveltracker.gems[gem].quests[Lang_Trans("quest_fallen")] := {"vendor": []}
+
+			db.leveltracker.arealvls := {}
+			For iAct, aZones in db.leveltracker.areas
+				For iZone, vZone in aZones
+					If vZone.lvl
+						db.leveltracker.arealvls[vZone.id] := vZone.lvl
+		}
+	}
+	Else If (database = "maps")
+		db.maps := Json.Load(LLK_FileRead("data\" (FileExist("data\" settings.general.lang_client "\maps" vars.poe_version ".json") ? settings.general.lang_client : "english") "\maps" vars.poe_version ".json",, "65001"))
+		, db.maps.Delete("_translation_notes")
+	Else If (database = "item_mods")
+		db.item_mods := Json.Load(LLK_FileRead("data\global\item mods" vars.poe_version ".json"))
+	Else If (database = "item_bases")
+		db.item_bases := Json.Load(LLK_FileRead("data\global\item bases" vars.poe_version ".json", 1))
+	Else If (database = "item_drops")
+		db.item_drops := Json.Load(LLK_FileRead("data\global\item drop-tiers" vars.poe_version ".json"))
+	Else If (database = "anoints")
+	{
+		db.anoints := Json.Load(LLK_FileRead("data\" (FileExist("data\" settings.general.lang_client "\anoints" vars.poe_version ".json") ? settings.general.lang_client : "english") "\anoints" vars.poe_version ".json", 1, "65001"))
+		If !vars.poe_version
+			db.anoints.oils := ["clear", "sepia", "amber", "verd", "teal", "azure", "indi", "violet", "crim", "black", "opal", "silver", "gold", "prism"]
+		vars.anoints.timestamp := db.anoints._timestamp, db.anoints.Delete("_timestamp")
+	}
+	Else If (database = "essences")
+		db.essences := Json.Load(LLK_FileRead("data\" (FileExist("data\" settings.general.lang_client "\essences.json") ? settings.general.lang_client : "english") "\essences.json",, "65001"))
+	Else If (database = "mapinfo")
+	{
+		db.mapinfo := {"localization": {}, "maps": {}, "mods": {}, "mod types": [], "expedition areas": [], "expedition groups": {}}
+		Loop, Parse, % StrReplace(LLK_FileRead("data\" (FileExist("data\" settings.general.lang_client "\map-info" vars.poe_version ".txt") ? settings.general.lang_client : "english") "\map-info" vars.poe_version ".txt", 1), "`t"), `n, `r
+		{
+			section := (SubStr(A_LoopField, 1, 1) = "[") ? LLK_StringRemove(SubStr(A_LoopField, 2, InStr(A_LoopField, "]") - 2), "# , #") : section
+			If !A_LoopField || (SubStr(A_LoopField, 1, 1) = ";") || (SubStr(A_LoopField, 1, 1) = "[")
+			{
+				line := ""
+				Continue
+			}
+			line := InStr(A_LoopField, ";##") ? SubStr(A_LoopField, 1, InStr(A_LoopField, ";##") - 1) : A_LoopField
+			key := InStr(line, "=") ? SubStr(line, 1, InStr(line, "=") - 1) : "", val := InStr(line, "=") ? SubStr(line, InStr(line, "=") + 1) : ""
+
+			If (section = "Map Names") && InStr(line, "=")
+				db.mapinfo.localization[key] := val
+			Else If LLK_PatternMatch(section, "", ["mod types", "expedition areas"])
+				db.mapinfo[section].Push(line)
+			Else If (section = "expedition groups")
+				db.mapinfo[section][key] := val
+			Else If LLK_PatternMatch(key, "", ["type", "text", "ID"])
+			{
+				If !IsObject(db.mapinfo.mods[section])
+					db.mapinfo.mods[section] := {}
+				If settings.general.dev && (key = "ID") && db.mapinfo.mods[section].ID
+					Gui_MsgBox("map-info warning",, "duplicate: " section,,, "Center")
+				db.mapinfo.mods[section][key] := StrReplace(val, "&", "&&")
+				If settings.general.dev && (key = "type") && (val != "expedition") && !LLK_HasVal(db.mapinfo["mod types"], val)
+					Gui_MsgBox("map-info warning",, "invalid mod-type for:`n" section,,, "Center")
+			}
+		}
+	}
+	Else If (database = "TLDR")
+	{
+		tldr := Json.Load(LLK_FileRead("data\english\TLDR-tooltips.json"))
+		db.altars := tldr["eldritch altars"].Clone()
+		db.altar_dictionary := []
+		For outer in ["", ""]
+			For index1, key in ["boss", "minions", "player"]
+			{
+				If (outer = 1)
+				{
+					If !IsObject(db.altars[key "_check"])
+						db.altars[key "_check"] := []
+					For index, array in db.altars[key]
+						Loop, Parse, % array.1, `n, `r
+							If !LLK_HasVal(db.altars[key "_check"], A_LoopField)
+								db.altars[key "_check"].Push(A_LoopField)
+				}
+				Else
+				{
+					For iDB, kDB in db.altars[key "_check"]
+						Loop, Parse, % StrReplace(kDB, "`n", " "), % A_Space
+							If !LLK_HasVal(db.altar_dictionary, A_LoopField)
+								db.altar_dictionary.Push(A_LoopField)
+				}
+			}
+
+		db.vaalareas := tldr["vaal side areas"].Clone()
+		db.vaalareas_dictionary := []
+		For key in db.vaalareas
+			Loop, Parse, key, % A_Space
+				If !LLK_HasVal(db.vaalareas_dictionary, A_LoopField)
+					db.vaalareas_dictionary.Push(A_LoopField)
+	}
+	Else If (database = "legion")
+		db.legion := Json.Load(LLK_FileRead("data\" (FileExist("data\" settings.general.lang_client "\timeless jewels.json") ? settings.general.lang_client : "english") "\timeless jewels.json"))
+	Else If (database = "relics")
+		db.relics := Json.Load(LLK_FileRead("data\" (FileExist("data\" settings.general.lang_client "\[sanctum] relics" vars.poe_version ".json") ? settings.general.lang_client : "english") "\[sanctum] relics" vars.poe_version ".json"))
+}
+
+FormatSeconds(seconds, leading_zeroes := 1)  ; Convert the specified number of seconds to hh:mm:ss format.
+{
+	local
+
+	days := 0, time := 19990101  ; *Midnight* of an arbitrary date.
+	While (seconds >= 86400)
+		days += 1, seconds -= 86400
+	time += seconds, seconds
+	FormatTime, time, %time%, HH:mm:ss
+	If days
+		time := (days < 10 ? "0" : "") days ":" time
+	While !leading_zeroes && InStr("0:", SubStr(time, 1, 1)) && (StrLen(time) > 4) ;remove leading 0s and colons
+		time := SubStr(time, 2)
+	return time
+}
+
+HTTPtoVar(URL, mode := "URL", currency := "") ; taken from the AHK-wiki, adapted to also fetch data from bulk-exchange
+{
+	local
+	global vars, settings, json
+
+	If (mode = "exchange")
+		item := URL, URL := "https://www.pathofexile.com/api/trade/exchange/" StrReplace(settings.stash.league, " ", "%20"), array := []
+	whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	whr.Open((mode = "exchange") ? "POST" : "GET", URL, true)
+	If (mode = "exchange")
+		whr.SetRequestHeader("Content-Type", "application/json")
+	whr.Send((mode = "exchange") ? "{""query"":{""status"":{""option"":""onlineleague""},""have"":[""" currency """],""want"":[""" item """]},""sort"":{""have"":""asc""},""engine"":""new""}" : "")
+	; Using 'true' above and the call below allows the script to remain responsive.
+	whr.WaitForResponse()
+
+	If (mode = "exchange")
+	{
+		limits_max := StrSplit(whr.GetResponseHeader("X-Rate-Limit-Ip"), ",", A_Space), limits_current := StrSplit(whr.GetResponseHeader("X-Rate-Limit-Ip-State"), ",", A_Space)
+		status := whr.Status(), limits := {}
+		Loop, % limits_max.Count()
+		{
+			pCurrent := StrSplit(limits_current[A_Index], ":", A_Space), pMax := StrSplit(limits_max[A_Index], ":", A_Space)
+			limits[pCurrent.2] := [pCurrent.1, pMax.1, pMax.3]
+		}
+		array.1 := (SubStr(whr.ResponseText, 1, 1) . SubStr(whr.ResponseText, 0) != "{}") || InStr(whr.ResponseText, """error""") ? "" : json.Load(whr.ResponseText)
+		array.2 := limits, array.3 := status, array.4 := (status = 429) ? whr.GetResponseHeader("Retry-After") : ""
+	}
+	Return (mode = "URL" ? Trim(whr.ResponseText, " `r`n`t") : array)
+}
+
+IniBatchRead(file, section := "", encoding := "1200")
+{
+	local
+
+	ini := {}, file := Blank(section) ? LLK_FileRead(file, 1, encoding) : LLK_IniRead(file, section)
+	If !Blank(section)
+		ini[section] := {}
+	If Blank(section) && !InStr(file, "[") && !InStr(file, "]") || !Blank(section) && (file = " " || file = "")
+		Return ini
+
+	Loop, Parse, file, `n, % " `r"
+	{
+		If Blank(A_LoopField)
+			Continue
+		If (SubStr(A_LoopField, 1, 1) = "[")
+		{
+			section := SubStr(A_LoopField, 2, -1), ini[section] := {}
+			Continue
+		}
+		If InStr(A_LoopField, "=")
+			key := SubStr(A_LoopField, 1, InStr(A_LoopField, "=") - 1), val := SubStr(A_LoopField, InStr(A_LoopField, "=") + 1)
+		Else key := A_LoopField, val := ""
+
+		val := (SubStr(val, 1, 1) = """" && SubStr(val, 0, 1) = """") ? SubStr(val, 2, -1) : val
+
+		If section
+			ini[section][key] := val
+	}
+	Return ini
+}
+
+LLK_ArrayDump(array, separator := " ", filler := "")
+{
+	local
+
+	string := ""
+	If !IsObject(array)
+		Return array
+	For index, val in array
+		string .= (Blank(string) ? "" : separator) . (Blank(val) ? filler : val)
+	Return string
+}
+
+LLK_ArraySort(array)
+{
+	local
+
+	parse := {}, parse2 := []
+	For index, val in array
+		parse[val] := 1
+
+	For key in parse
+		parse2.Push(key)
+
+	Return parse2
+}
+
+LLK_CloneObject(object)
+{
+	local
+
+	For key, val in object
+		If !IsNumber(key)
+			is_array := 1
+
+	If is_array
+		new_object := []
+	Else new_object := {}
+
+	For key, val in object
+		If !IsObject(val)
+			new_object[key] := val
+		Else new_object[key] := LLK_CloneObject(val)
+	Return new_object
+}
+
+LLK_Error(ErrorMessage, restart := 0)
+{
+	Gui_MsgBox("error",, ErrorMessage)
+	If restart
+		Reload
+	ExitApp
+}
+
+LLK_FilePermissionError(issue, folder)
+{
+	array := ["The tool couldn't " issue " a file/folder: " folder
+		, "There seeem to be write-permission issues in the current folder location."
+		, "Try moving the tool to a different location or running it as administrator."
+		, "The tool will now close."]
+	Gui_MsgBox("file permission",, array, "nodrag")
+	ExitApp
+}
+
+LLK_FileRead(file, keep_case := 0, encoding := "65001")
+{
+	local
+
+	FileRead, read, % (!Blank(encoding) && encoding != "blank" ? "*P" encoding " " : "") file
+	If !keep_case
+		StringLower, read, read
+	Return Trim(read, " `r`n`t")
+}
+
+LLK_FormatTime(time, format)
+{
+	local
+
+	FormatTime, formatted, % time, % format
+	Return formatted
+}
+
+LLK_HasKey(object, value, InStr := 0, case_sensitive := 0, all_results := 0, recurse := 0)
+{
+	local
+
+	If !IsObject(object) || Blank(value)
+		Return
+	parse := []
+	For key, val in object
+	{
+		If (key = value) || InStr && InStr(key, value, case_sensitive) || recurse && IsObject(val) && LLK_HasKey(val, value, InStr, case_sensitive, all_results, recurse)
+		{
+			If !all_results
+				Return key
+			Else parse.Push(key)
+		}
+	}
+
+	If all_results
+		Return (parse.Count() ? parse : "")
+	Return
+}
+
+LLK_HasVal(object, value, InStr := 0, case_sensitive := 0, all_results := 0, recurse := 0, check_decimals := 0) ; check_decimals is a band-aid fix for very specific use-cases where X and X.000[...] need to be distinguished
+{
+	local
+
+	If !IsObject(object) || Blank(value)
+		Return
+	parse := []
+	For key, val in object
+		If (val = value) && !check_decimals || (val = value) && InStr(val, ".") && InStr(value, ".") && check_decimals || InStr && InStr(val, value, case_sensitive) || recurse && IsObject(val) && LLK_HasVal(val, value, InStr, case_sensitive, all_results, recurse, check_decimals)
+		{
+			If !all_results
+				Return key
+			Else parse.Push(key)
+		}
+
+	If all_results && parse.Count()
+		Return parse
+	Return
+}
+
+LLK_HasRegex(object, regex, all_results := 0, check_key := 0)
+{
+	local
+
+	If !IsObject(object)
+		Return
+	parse := []
+	For key, val in object
+		If RegExMatch(!check_key ? val : key, regex)
+		{
+			If !all_results
+				Return key
+			Else parse.Push(key)
+		}
+
+	If all_results && parse.Count()
+		Return parse
+}
+
+LLK_IniRead(file, section := "", key := "", default := "")
+{
+	IniRead, iniread, % file, % section, % key, % Blank(default) ? A_Space : default
+	iniread := (iniread = " ") ? "" : iniread 	;work-around for situations where A_Space is taken literally instead of "blank" (blank return is hard-coded as %A_Space%, so % "" doesn't work)
+	If !Blank(default) && Blank(iniread)		;IniRead's 'default' is only used if the key cannot be found in the ini-file
+		Return default 					;if the key in the ini-file is blank, the target-variable will also be blank (instead of storing 'default')
+	Else Return iniread
+}
+
+LLK_InRange(x, y, range)
+{
+	If (y >= x - range) && (y <= x + range)
+		Return 1
+	Else Return 0
+}
+
+LLK_InStrCount(string, character, delimiter := "")
+{
+	count := 0
+	Loop, Parse, string, % delimiter
+		If (A_Loopfield = character)
+			count += 1
+	Return count
+}
+
+LLK_IsBetween(var, x, y)
+{
+	If Blank(x) || Blank(y)
+		Return
+	x += 0, y += 0
+	If (x > y)
+		z := x, x := y, y := z
+	If (x <= var) && (var <= y)
+		Return 1
+	Else Return 0
+}
+
+LLK_IsType(character, type)
+{
+	If (character = "")
+		Return 0
+	If (character = " ") && (type = "alpha" || type = "alnum")
+		Return 1
+	Else If character is %type%
+		Return 1
+}
+
+LLK_Log(message)
+{
+	local
+	global vars
+
+	If !vars.logging
+		Return
+
+	FormatTime, logstamp, A_Now, yyyy-MM-dd`, HH:mm:ss
+	FileAppend, % (InStr(message, "---") ? "`r`n" : "") "[" logstamp "] " message "`r`n", data\log.txt
+}
+
+LLK_MaxIndex(array)
+{
+	local
+
+	Return array[array.MaxIndex()]
+}
+
+LLK_ObjectSum(object)
+{
+	local
+
+	sum := 0
+	For key, val in object
+		sum += val
+	Return sum
+}
+
+LLK_PatternMatch(text, string, object, swap := 0, value := 1, case := 1) ;swap param switches the order around, val param determines if values or keys of the object are used
+{
+	local
+
+	For index, val in object
+	{
+		val := value ? val : index
+		check := swap ? val . string : string . val
+		If InStr(text, check, case)
+		{
+			While (SubStr(val, 1, 1) = " ")
+				val := SubStr(val, 2)
+			Return InStr(val, " ") ? SubStr(val, 1, InStr(val, " ") - 1) : val
+		}
+	}
+}
+
+LLK_Restart()
+{
+	Reload
+	ExitApp
+}
+
+LLK_StringCase(string, mode := 0, title := 0)
+{
+	local
+
+	If mode
+		StringUpper, string, % string, % title ? "T" : ""
+	Else StringLower, string, % string, % title ? "T" : ""
+	Return string
+}
+
+LLK_StringCompare(string, needles)
+{
+	local
+
+	For index, needle in needles
+		If !Blank(needle) && (SubStr(string, 1, StrLen(needle)) = needle)
+			Return 1
+}
+
+LLK_StringRemove(string, characters)
+{
+	local
+
+	Loop, Parse, characters, `,
+	{
+		If (A_LoopField = "")
+			Continue
+		string := StrReplace(string, A_LoopField)
+	}
+	Return string
+}
+
+LLK_StringReplace(string, array)
+{
+	local
+
+	For index, pair in array
+		string := StrReplace(string, pair.1, pair.2)
+	Return string
+}
+
+LLK_StrSplit(string, type := "array", quotes := 1)
+{
+	local
+
+	array := [], object := {}
+	Loop, Parse, string, % " "
+	{
+		If (!InStr(A_LoopField, """") || RegexMatch(A_LoopField, "i)^"".*""$")) && !new_val
+			array.Push((quotes ? """" : "") . StrReplace(A_LoopField, """") . (quotes ? """" : ""))
+		Else If !InStr(A_LoopField, """") && new_val
+			new_val .= " " A_LoopField
+		Else If RegexMatch(A_LoopField, "i)^""")
+			new_val := A_LoopField
+		Else If RegexMatch(A_LoopField, "i)""$")
+			array.Push((quotes ? """" : "") . StrReplace(new_val " " A_LoopField, """") . (quotes ? """" : "")), new_val := ""
+	}
+	If (type = "array")
+		Return array
+	For index, val in array
+		object[val] := 1
+	Return object
+}
+
+LLK_TimeElapsed(timestamp, unit := "minutes", UTC := 1)
+{
+	local
+
+	now := (UTC ? A_NowUTC : A_Now)
+	EnvSub, now, % timestamp, % unit
+	Return now
+}
+
+LLK_TimeSince(timestamp_early, timestamp_late, short := 0)
+{
+	local
+
+	unit := 1
+	timestamp_late -= timestamp_early, Minutes
+	For index, val in [60, 24, 7]
+		If (timestamp_late >= val)
+			timestamp_late := Round(timestamp_late / val, 1), unit += 2
+		Else Break
+
+	timestamp_late := StrReplace(timestamp_late, ".0")
+	timestamp_late := (timestamp_late >= 10 ? Round(timestamp_late) : timestamp_late)
+	Return timestamp_late . (short ? "" : " ") . SubStr(Lang_Trans("global_timeunits", unit + (timestamp_late != 1 ? 1 : 0)), 1, (short ? 1 : 1000))
+}
+
+LLK_TrimDecimals(string)
+{
+	local
+
+	If !InStr(string, ".")
+		Return string
+	While InStr("0.", (check := SubStr(string, 0))) && !Blank(check)
+	{
+		string := SubStr(string, 1, -1)
+		If (check = ".")
+			Break
+	}
+	Return string
+}
+
+OCR_Start(x, y, w, h, debug_key := "", usecase := "", opt_params := "[]", opt_effects := "[]") ; debug key: separate key that -- if held down during scans -- opens a GUI with the screen-cap and scan results
+{																			; opt_effects: array, and each index is an array itself consisting of the 4 parameters used by Gdip_CreateEffect(), e.g. [5, 0, 35, 0]
+	local
+	global vars, settings, json
+
+	vars.ocr_comms := {}, object := {}
+	Gui, ocr_comms: New, -DPIScale -Caption +LastFound +AlwaysOnTop +ToolWindow +Border, % "Exile UI: OCR"
+	WinSet, Trans, 1
+	object.client := [vars.hwnd.poe_client, vars.client.h], object.clip := [x, y, w, h]
+	If settings.general.blackbars
+		object.blackbars := [vars.client.x - vars.monitor.x, 0, vars.client.w, vars.client.h]
+	If usecase
+		object.usecase := usecase
+	If !Blank(debug_key)
+		object.debug := debug_key
+	If (settings.general.lang_client = "english")
+		object.language := "english"
+	If opt_params.Count()
+		object.params := opt_params.Clone()
+	If opt_effects.Count()
+		object.effects := opt_effects.Clone()
+
+	Gui, ocr_comms: Add, Text,, % json.dump(object)
+	Gui, ocr_comms: Show, NA x10000 y10000
+
+	Run, % """" A_AhkPath """ """ A_ScriptDir "\modules\_ocr thread.ahk""", % A_ScriptDir, UseErrorLevel
+	If ErrorLevel
+	{
+		If (usecase != "TLDR")
+			LLK_ToolTip(Lang_Trans("ocr_fail"), 2,,,, "Red")
+		Gui, ocr_comms: Destroy
+		Return
+	}
+	Else If !(debug_key && GetKeyState(debug_key, "P"))
+		While !ocr_failed && Blank(vars.ocr_comms.text)
+		{
+			If !start
+				start := A_TickCount
+			If (A_TickCount >= start + 3000)
+				ocr_failed := 1
+			Sleep 25
+		}
+
+	If (vars.ocr_comms.text = "JSON error")
+	{
+		LLK_ToolTip("json error", 1,,,, "Red")
+		Gui, ocr_comms: Destroy
+		Return
+	}
+
+	If ocr_failed || (vars.ocr_comms.text = "OCR failed") || debug_key && GetKeyState(debug_key, "P")
+	{
+		WinWaitClose, OCR debug
+		If (usecase != "TLDR") && ((vars.ocr_comms.text = "OCR failed") || !(debug_key && GetKeyState(debug_key, "P")))
+			LLK_ToolTip(Lang_Trans("global_fail"), 1,,,, "Red")
+		KeyWait, % debug_key
+		Gui, ocr_comms: Destroy
+		Return
+	}
+	Gui, ocr_comms: Destroy
+	Return SubStr(vars.ocr_comms.text, InStr(vars.ocr_comms.text, "`n") + 1)
+}
+
+SnipGuiClose()
+{
+	local
+	global vars, settings
+
+	WinGetPos, x, y, w, h, % "ahk_id "vars.hwnd.snip.main
+	vars.snip := {"x": x, "y": y, "w": w, "h": h}
+	Gui, snip: Destroy
+	vars.hwnd.Delete("snip")
+}
+
+StrMatch(string, check, match_length := 0)
+{
+	local
+
+	If (SubStr(string, 1, StrLen(check)) = check) && (match_length && StrLen(string) = StrLen(check) || !match_length)
+		Return 1
+}
+
+StringSend(ByRef string, ByRef WindowTitle := "") ;based on example #4 on https://www.autohotkey.com/docs/v1/lib/OnMessage.htm
+{
+	local
+	global vars
+
+	VarSetCapacity(CopyDataStruct, 3*A_PtrSize, 0)
+	SizeInBytes := (StrLen(string) + 1) * (A_IsUnicode ? 2 : 1)
+	NumPut(SizeInBytes, CopyDataStruct, A_PtrSize)
+	NumPut(&string, CopyDataStruct, 2*A_PtrSize)
+	SendMessage, 0x004A, 0, &CopyDataStruct,, % Blank(WindowTitle) ? vars.general.bThread : WindowTitle
+	Return (ErrorLevel = "FAIL" ? 0 : ErrorLevel)
+}
+
+UpdateCheck(timer := 0)
+{
+    Return ; preserve the custom build guide when upstream publishes updates
+}
+
+UpdateDownload(mode := "")
+{
+	local
+	static dl_bar := 0, HWND_bar
+
+	If (mode = "reset")
+	{
+		dl_bar := 0
+		GuiControl,, % HWND_bar, % dl_bar
+		GuiControl, movedraw, % HWND_bar
+		Return
+	}
+	If (mode)
+	{
+		HWND_bar := mode
+		SetTimer, UpdateDownload, 500
+	}
+
+	dl_bar += (dl_bar = 10) ? -10 : 1
+	GuiControl,, % HWND_bar, % dl_bar
+}
+
+UpdateParseVersion(string)
+{
+	local
+
+	Loop, Parse, string
+	{
+		If (A_Index = 1)
+			string := ""
+		string .= (A_Index = 1) ? "1." : (A_Index = 3) ? A_LoopField "." : (InStr("47", A_Index) && A_LoopField = "0") ? "" : (A_LoopField = ".") ? " (hotfix " : A_LoopField
+	}
+	string .= InStr(string, "(hotfix") ? ")" : ""
+	Return string
+}
+
+URL(cHWND)
+{
+	local
+	global vars
+
+	KeyWait, LButton
+	URL := vars.URLs[cHWND]
+	If Blank(URL)
+		Return
+	Run, % URL
+}

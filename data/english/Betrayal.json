@@ -1,0 +1,343 @@
+{
+  "_timestamp": "2026-11-12, 14:00 (utc)",
+  "aisling": {
+    "rewards": {
+      "transportation": [
+        "double-veiled items",
+        "boots"
+      ],
+      "fortification": [
+        "crafting bench:\nveiled exalt",
+        "trapped chest:\nboots"
+      ],
+      "research": [
+        "crafting bench:\nveiled chaos",
+        "timed crafting:\nboots"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "cameria": {
+    "rewards": {
+      "transportation": [
+        "allflame embers:\ntype?",
+        "ring"
+      ],
+      "fortification": [
+        "trapped chest:\njewel",
+        "trapped chest:\nrings"
+      ],
+      "research": [
+        "crafting bench:\njewel",
+        "timed crafting:\nring"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "elreon": {
+    "rewards": {
+      "transportation": [
+        "allflame embers:\ntype?",
+        "shield"
+      ],
+      "fortification": [
+        "trapped chest:\nvaaled gear",
+        "trapped chest:\nshields"
+      ],
+      "research": [
+        "crafting bench:\ntainted orbs",
+        "timed crafting:\nshield"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "gravicius": {
+    "rewards": {
+      "transportation": [
+        "div card stack",
+        "body armor"
+      ],
+      "fortification": [
+        "trapped chest:\ndiv card",
+        "trapped chest:\nbody armors"
+      ],
+      "research": [
+        "trade 1 div card\nfor a random one",
+        "timed crafting:\nbody armors"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "guff": {
+    "rewards": {
+      "transportation": [
+        "misc. currency",
+        "gloves"
+      ],
+      "fortification": [
+        "trapped chest:\nrare gear",
+        "trapped chest:\ngloves"
+      ],
+      "research": [
+        "crafting bench:\nreflecting mist",
+        "timed crafting:\ngloves"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "haku": {
+    "rewards": {
+      "transportation": [
+        "unique strongbox",
+        "higher-rarity items"
+      ],
+      "fortification": [
+        "allflame embers:\ntype?",
+        "mixed items"
+      ],
+      "research": [
+        "crafting bench:\ninfluence",
+        "allflame embers:\ntype?"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "hillock": {
+    "rewards": {
+      "transportation": [
+        "trapped chest:\ninfluenced gear",
+        "belt"
+      ],
+      "fortification": [
+        "crafting bench:\ninfluenced gear",
+        "trapped chest:\nbelts"
+      ],
+      "research": [
+        "crafting bench:\neldritch implicit",
+        "timed crafting:\nbelts"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "it": {
+    "rewards": {
+      "transportation": [
+        "trapped chest:\nfoulborn uniques",
+        "jewel"
+      ],
+      "fortification": [
+        "crafting bench:\nbreach ring",
+        "trapped chest:\njewels"
+      ],
+      "research": [
+        "crafting bench:\ntainted sockets",
+        "timed crafting:\njewels"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "janus": {
+    "rewards": {
+      "transportation": [
+        "gold piles",
+        "basic currency"
+      ],
+      "fortification": [
+        "allflame embers:\ntype?",
+        "quality currency"
+      ],
+      "research": [
+        "unique vendor\n(gold prices)",
+        "allflame embers:\ntype?"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "jorgin": {
+    "rewards": {
+      "transportation": [
+        "allflame embers:\ntype?",
+        "amulet"
+      ],
+      "fortification": [
+        "trapped chest:\ndelve gear",
+        "trapped chest:\namulets"
+      ],
+      "research": [
+        "crafting bench:\ntalisman",
+        "timed crafting:\namulet"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "korell": {
+    "rewards": {
+      "transportation": [
+        "allflame embers:\ntype?",
+        "helmet"
+      ],
+      "fortification": [
+        "crafting bench:\nessence gear",
+        "trapped chest:\nhelmets"
+      ],
+      "research": [
+        "crafting bench:\nessences",
+        "timed crafting\nhelmets"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "leo": {
+    "rewards": {
+      "transportation": [
+        "allflame embers:\ntype?",
+        "flask"
+      ],
+      "fortification": [
+        "trapped chest:\nvaaled unique",
+        "trapped chest:\nflasks"
+      ],
+      "research": [
+        "crafting bench:\ndjinn vaal orb",
+        "allflame embers:\ntype?"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "riker": {
+    "rewards": {
+      "transportation": [
+        "unique items",
+        "quiver"
+      ],
+      "fortification": [
+        "ancient orbs",
+        "trapped chest:\nquivers"
+      ],
+      "research": [
+        "crafting bench:\nancient orb",
+        "fractured item"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "rin": {
+    "rewards": {
+      "transportation": [
+        "originator maps",
+        "map"
+      ],
+      "fortification": [
+        "various threads",
+        "trapped chest:\nmaps"
+      ],
+      "research": [
+        "trapped chest:\nvarious threads",
+        "allflame embers:\ntype?"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "tora": {
+    "rewards": {
+      "transportation": [
+        "qual. gems /\nexp. lens",
+        "skill/support gems"
+      ],
+      "fortification": [
+        "trapped chest:\ngem",
+        "trapped chest:\ngems"
+      ],
+      "research": [
+        "crafting bench:\ngem",
+        "allflame embers:\ntype?"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "vagan": {
+    "rewards": {
+      "transportation": [
+        "allflame embers:\ntype?",
+        "allflame embers:\ntype?"
+      ],
+      "fortification": [
+        "trapped chest:\nenshrouded uniques",
+        "trapped chest:\nweapons"
+      ],
+      "research": [
+        "crafting bench:\nchaos orb + fracture",
+        "timed crafting:\nweapon"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  },
+  "vorici": {
+    "rewards": {
+      "transportation": [
+        "currency stack",
+        "apply chromatics:\n10 / 15 / 20 / 30"
+      ],
+      "fortification": [
+        "apply jeweller's / chromes /\nfusings to your item",
+        "apply jeweller's:\n10 / 15 / 20 / 30"
+      ],
+      "research": [
+        "trapped chest:\nsoul core'd qual gems",
+        "apply fusings:\n10 / 15 / 20 / 30"
+      ],
+      "intervention": [
+        "trapped chest:\nuniques (class?)",
+        "trapped chest:\nrandom items (class?)"
+      ]
+    }
+  }
+}
