@@ -6,7 +6,7 @@
 
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, slop := settings.general.slop, cButtons := settings.general.cButtons, fWidth := settings.general.fWidth
 	Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gSettings_actdecoder2", " " Lang_Trans("global_enable") " ", "settings_actdecoder enable", "hwnd.settings.enable", slop,,, cButtons, settings.features.actdecoder)
-	hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki/Act‐Decoder"}
+	hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	If !settings.features.actdecoder
 		Return
@@ -91,7 +91,7 @@
 	If !vars.poe_version
 	{
 		Gui, %GUI%: Add, Text, % "Section xs BackgroundTrans", % ">> CyclonDefinitiv's "
-		hwnd := Gui_Label(GUI, "ys x+0 gURL cAqua", " layout guide ", "settings_website||",, slop,,, cButtons), vars.URLs[hwnd.text] := "https://www.definitivguide.com/"
+		hwnd := Gui_Label(GUI, "ys x+0 gURL cAqua", " layout guide ", "settings_website||",, slop,,, cButtons), vars.URLs[hwnd.text] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/ATALHOS.md"
 		Gui, %GUI%: Add, Text, % "Section xs BackgroundTrans", % ">> lailloken (compilation && editing)"
 	}
 	Else
@@ -140,7 +140,7 @@ Settings_actdecoder2(cHWND := "")
 	{
 		wait := 1, failed := 0
 		LLK_ToolTip(Lang_Trans("global_downloading"), 0,,, "dload_layout", "Lime")
-		UrlDownloadToFile, % "https://github.com/Lailloken/Exile-UI/archive/refs/heads/layouts" StrReplace(vars.poe_version, " ", "_") ".zip", % "img\GUI\act-decoder\Exile-UI-layouts.zip"
+1ErrorLevel := 1
 		If ErrorLevel || !FileExist("img\GUI\act-decoder\Exile-UI*.zip")
 			failed := 1
 		LLK_Overlay(vars.hwnd.tooltip_dload_layout, "destroy")
@@ -257,7 +257,7 @@ Settings_addons(mode := 0)
 
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, slop := settings.general.slop, cButtons := settings.general.cButtons, fWidth := settings.general.fWidth, fHeight := settings.general.fHeight
 	Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gSettings_addons2", " " Lang_Trans("global_enable") " ", "settings_addons enable", "hwnd.settings.enable", slop,,, cButtons, settings.features.addons)
-	;hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki/Enchant-Finder"}
+	;hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	If !settings.features.addons
 	{
@@ -511,7 +511,7 @@ Settings_anoints()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Enchant-Finder", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.anoints
 		Return
@@ -566,7 +566,7 @@ Settings_anoints2(cHWND)
 			Return
 		}
 		vars.settings.anoint_timestamp := A_TickCount
-		Try file := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/refs/heads/" (settings.general.dev_env ? "dev" : "main") "/data/english/anoints" StrReplace(vars.poe_version, " ", "%20") ".json")
+1file := ""
 
 		If file
 			Try database := json.load(file)
@@ -604,7 +604,7 @@ Settings_betrayal()
 
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, slop := settings.general.slop, cButtons := settings.general.cButtons, fWidth := settings.general.fWidth, fHeight := settings.general.fHeight
 	Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gSettings_betrayal2", " " Lang_Trans("global_enable") " ", "settings_betrayal enable", "hwnd.settings.enable", slop,,, cButtons, settings.features.betrayal)
-	hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki/Betrayal-Info"}
+	hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	If !settings.features.betrayal
 		Return
@@ -731,7 +731,7 @@ Settings_betrayal2(cHWND := "")
 			Return
 		}
 		vars.settings.betrayal_timestamp := A_TickCount
-		Try file := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/refs/heads/" (settings.general.dev_env ? "dev" : "main") "/data/english/Betrayal.json")
+1file := ""
 
 		If file
 			Try database := json.load(file)
@@ -762,7 +762,7 @@ Settings_cheatsheets()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Cheat-sheet-Overlay-Toolkit", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.cheatsheets
 		Return
@@ -1047,7 +1047,7 @@ Settings_client()
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, vars.settings.borderless_provisional := vars.client.borderless, vars.settings.blackbars_provisional := settings.general.blackbars
 	cButtons := settings.general.cButtons, slop := settings.general.slop, fWidth := settings.general.fWidth, fHeight := settings.general.fHeight, radius := settings.general.radius, xMargin := vars.settings.xMargin
 	fullscreen := vars.client.fullscreen
-	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki && setup guide ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki"}
+	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki && setup guide ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	If (fSize != settings.general.fSize)
 	{
@@ -1327,7 +1327,7 @@ Settings_cloneframes()
 
 	Gui, %GUI%: Add, Text, % "Section x" x_anchor " y" vars.settings.ySelection " Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Clone-frames", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If vars.general.MultiThreading && (vars.cloneframes.list.Count() > 1)
 	{
@@ -1612,53 +1612,9 @@ Settings_cloneframes2(cHWND)
 
 Settings_donations()
 {
-	local
-	global vars, settings, JSON
-	static last_update, live_list, patterns := [["000000", "F99619"], ["000000", "F05A23"], ["FFFFFF", "F05A23"], ["Red", "FFFFFF"]], placeholder := "these are placeholders, not actual donations:`ncouldn't download the list"
-
-	If !vars.settings.donations
-		vars.settings.donations := {"Le Toucan": [1, ["june 17, 2024:`ni have arrived. caw, caw"]], "Lightwoods": [4, ["december 23, 2015:`ni can offer you 2 exalted orbs for your mirror", "december 23, 2015:`nsince i'm feeling happy today, i'll give you some maps on top", "december 23, 2015:`n<necropolis map> 5 of these?"]], "Average Redditor": [1, ["june 18, 2024:`nbruh, just enjoy the game"]], "Sanest Redditor": [3, ["august 5, 2023:`nyassss keep making more powerful and intrusive tools so ggg finally bans all ahk scripts"]], "ILoveLootsy": [2, ["february 1, 2016:`ndang yo"]]}
-
-	If (last_update + 120000 < A_TickCount)
-	{
-		Try donations_new := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/misc/donations.json")
-		If (SubStr(donations_new, 1, 1) . SubStr(donations_new, 0) = "{}")
-			vars.settings.donations := JSON.load(donations_new), live_list := 1
-	}
-
-	last_update := A_TickCount, dimensions := ["`n"], rearrange := []
-	For key, val in vars.settings.donations
-		If !val.0
-			new_key := LLK_PanelDimensions([StrReplace(key, "|")], settings.general.fSize, width0, height0,,,, 1), dimensions.Push(new_key), rearrange.Push([key, new_key])
-		Else dimensions.Push(key)
-
-	For index, val in rearrange
-	{
-		If (val.1 != val.2)
-			vars.settings.donations[val.2] := vars.settings.donations[val.1].Clone(), vars.settings.donations.Delete(val.1)
-		vars.settings.donations[val.2].0 := 1
-	}
-
-	LLK_PanelDimensions(dimensions, settings.general.fSize - 2, width, height), columns := 4, slop := settings.general.slop, cButtons := settings.general.cButtons
-	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor
-	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " more info ", "settings_donations howto",, slop,,, cButtons)
-	vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/discussions/407"}
-
-	hwnd := Gui_Label(GUI, "ys gURL cAqua", " ko-fi.com ", "settings_donations kofi",, slop,,, cButtons), vars.URLs[hwnd.text] := "https://ko-fi.com/lailloken"
-
-	Gui, %GUI%: Add, Text, % "Section xs y+" vars.settings.spacing " BackgroundTrans", % "special thanks to these exiles who help me stay sane:"
-	Gui, %GUI%: Font, % "s" settings.general.fSize - 2
-	For key, val in vars.settings.donations
-	{
-		pos := (A_Index = 1) || !Mod(A_Index - 1, columns) ? "xs Section" : "ys"
-		Gui, %GUI%: Add, Text, % pos " Center Border HWNDhwnd BackgroundTrans w" width " h" height " c" patterns[val.1].1 . (!InStr(key, "`n") ? " 0x200" : ""), % StrReplace(key, "|")
-		Gui, %GUI%: Add, Progress, % "xp+3 yp+3 wp-6 hp-6 Disabled HWNDhwnd Background" patterns[val.1].2, 0
-		Gui, %GUI%: Add, Progress, % "xp-3 yp-3 wp+6 hp+6 Disabled Background" patterns[val.1].1, 0
-		vars.hwnd.help_tooltips["donation_" key] := hwnd
-	}
-	Gui, %GUI%: Font, % "s" settings.general.fSize
-	If !live_list
-		Gui, %GUI%: Add, Text, % "xs Section cAqua y+" vars.settings.spacing, % placeholder
+    global vars
+    GUI := "settings_menu" vars.settings.GUI_toggle
+    Gui, %GUI%: Add, Link, % "x" vars.settings.x_anchor " y" vars.settings.ySelection, <a href="https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/APOIAR.md">Apoiar o NerdMítico Jr.</a>
 }
 
 Settings_exchange()
@@ -1670,7 +1626,7 @@ Settings_exchange()
 
 	Gui, %GUI%: Add, Text, % "Section x" x_anchor " y" vars.settings.ySelection " Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Vaal-Street", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	Gui, %GUI%: Add, Text, % "Section xs y+" vars.settings.spacing " Border BackgroundTrans HWNDhwnd gSettings_exchange2" (settings.features.exchange ? " cLime" : " cGray"), % " " Lang_Trans("global_enable") " "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
@@ -1838,7 +1794,7 @@ Settings_general()
 
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, cButtons := settings.general.cButtons, cButtons2 := settings.general.cButtons2, slop := settings.general.slop, dev := settings.general.dev
 	fWidth := settings.general.fWidth, fHeight := settings.general.fHeight
-	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki && setup guide ", "settings_website",, 1,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki"}
+	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki && setup guide ", "settings_website",, 1,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	If (fSize != settings.general.fSize)
 	{
@@ -2279,7 +2235,7 @@ Settings_iteminfo()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Item-info", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.iteminfo
 		Return
@@ -2744,7 +2700,7 @@ Settings_leveltracker()
 	cButtons2 := settings.general.cButtons2, fWidth := settings.general.fWidth, fHeight := settings.general.fHeight, xMargin := vars.settings.xMargin, radius := settings.general.radius
 	Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gSettings_leveltracker2", " " Lang_Trans("global_enable") " ", "settings_leveltracker enable", "hwnd.settings.enable", slop,,, cButtons, settings.features.leveltracker)
 
-	hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki/Act‐Tracker"}
+	hwnd := Gui_Label(GUI, "ys gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 	If !settings.features.leveltracker
 		Return
 
@@ -3357,7 +3313,7 @@ Settings_lootfilter()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/FilterSpoon", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.lootfilter
 		Return
@@ -3669,7 +3625,7 @@ Settings_macros()
 
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, margin := vars.settings.xMargin, slop := settings.general.slop, cButtons := settings.general.cButtons, fWidth := settings.general.fWidth
 	fHeight := settings.general.fHeight, radius := settings.general.radius
-	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki/Chat-Macros"}
+	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	hwnd := Gui_Label(GUI, "ys gURL cAqua", " ahk: key list ", "settings_website|",, slop,,, cButtons), vars.URLs[hwnd.text] := "https://www.autohotkey.com/docs/v1/KeyList.htm"
 	hwnd := Gui_Label(GUI, "ys gURL cAqua", " poe.wiki: chat ", "settings_website||",, slop,,, cButtons), vars.URLs[hwnd.text] := "https://www.poe" StrReplace(vars.poe_version, " ") "wiki.net/wiki/Chat#Commands"
@@ -3868,7 +3824,7 @@ Settings_mapinfo()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Map-info-panel", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.mapinfo
 		Return
@@ -4213,7 +4169,7 @@ Settings_maptracker()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Map‐Tracker", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.maptracker
 		Return
@@ -5093,7 +5049,7 @@ Settings_qol()
 
 	Gui, %GUI%: Add, Text, % "Section x" x_anchor " y" vars.settings.ySelection " Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Minor-Features", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If settings.qol.quickpob
 	{
@@ -5493,7 +5449,7 @@ Settings_runeshaping()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Rune‐Ninja", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.runeshaping
 		Return
@@ -5688,7 +5644,7 @@ Settings_sanctum()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Sanctum-and-Sekhema-Planner", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.sanctum
 		Return
@@ -5784,7 +5740,7 @@ Settings_screenchecks()
 	global vars, settings
 
 	GUI := "settings_menu" vars.settings.GUI_toggle, x_anchor := vars.settings.x_anchor, slop := settings.general.slop, cButtons := settings.general.cButtons, fWidth := settings.general.fWidth
-	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/Lailloken/Exile-UI/wiki/Screen-checks"}
+	hwnd := Gui_Label(GUI, "Section x" x_anchor " y" vars.settings.ySelection " gURL cAqua", " wiki page ", "settings_website",, slop,,, cButtons), vars.URLs := {(hwnd.text): "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md"}
 
 	For key in (active_pixel := Settings_ScreenChecksValid("pixel").1)
 	{
@@ -5992,7 +5948,7 @@ Settings_searchstrings()
 
 	Gui, %GUI%: Add, Text, % "Section x" x_anchor " y" vars.settings.ySelection " Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Search-strings", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " poe.re "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
@@ -6201,7 +6157,7 @@ Settings_stash()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Stash‐Ninja", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.stash
 		Return
@@ -6582,7 +6538,7 @@ Settings_statlas()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/Statlas", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If !settings.features.statlas
 		Return
@@ -6669,7 +6625,7 @@ Settings_TLDR()
 
 	Gui, %GUI%: Add, Text, % "ys Border BackgroundTrans HWNDhwnd gURL cAqua", % " wiki page "
 	Gui, %GUI%: Add, Progress, % "Disabled xp yp wp hp Border HWNDhwnd1 Background" vars.settings.cButtons2 " c" vars.settings.cButtons, 100
-	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/Lailloken/Exile-UI/wiki/TLDR‐Tooltips", vars.hwnd.help_tooltips["settings_website"] := hwnd1
+	vars.URLs := {}, vars.URLs[hwnd] := "https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/blob/main/docs/README.md", vars.hwnd.help_tooltips["settings_website"] := hwnd1
 
 	If (vars.client.h <= 720)
 	{
@@ -6924,7 +6880,7 @@ Settings_unsupported()
 	Gui, %GUI%: Font, norm
 	Gui, %GUI%: Add, Text, % "xs Section y+"vars.settings.spacing " BackgroundTrans", % "this feature is not available on clients`nwith an unsupported language.`n`nit will be available once a language-`npack for the current language has been`ninstalled.`n`nthese packs have to be created by the`ncommunity. to find out if there are any`nfor your language or how to`ncreate one, click the link below.`n"
 	Gui, %GUI%: Font, norm
-	Gui, %GUI%: Add, Link, % "Section xs BackgroundTrans", <a href="https://github.com/Lailloken/Exile-UI/discussions/categories/translations-localization">exile ui discussions: translations</a>
+	Gui, %GUI%: Add, Link, % "Section xs BackgroundTrans", <a href="https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/issues">Sugerir tradução</a>
 }
 
 Settings_updater()
@@ -7110,9 +7066,9 @@ Settings_updater2(cHWND := "")
 	If (check = "news_read")
 		Settings_menu("news")
 	Else If InStr(check, "githubpage_")
-		Run, % "https://github.com/Lailloken/Exile-UI/tree/"control
+		Run, https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/releases/latest
 	Else If (check = "releases_page")
-		Run, % "https://github.com/Lailloken/Exile-UI/releases"
+		Run, https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/releases/latest
 	Else If (check = "update_check")
 	{
 		IniWrite, % (settings.updater.update_check := !settings.updater.update_check), ini\config.ini, settings, update auto-check
@@ -7132,7 +7088,7 @@ Settings_updater2(cHWND := "")
 		Settings_menu("updater")
 	}
 	Else If InStr(check, "fullchangelog_")
-		Run, % "https://github.com/Lailloken/Exile-UI/releases/tag/v" StrReplace(control, ",", ".")
+		Run, https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/releases/latest
 	Else If InStr(check, "get_")
 	{
 		If settings.general.dev
@@ -7155,7 +7111,7 @@ Settings_updater2(cHWND := "")
 	Else If (check = "manual")
 	{
 		in_progress := 1
-		UrlDownloadToFile, % "https://github.com/Lailloken/Exile-UI/archive/refs/tags/v" vars.update.2 ".zip", % "update\update_" vars.updater.target_version.2 ".zip"
+1ErrorLevel := 1
 		error := ErrorLevel || !FileExist("update\update_" vars.updater.target_version.2 ".zip") ? 1 : 0
 		in_progress := 0
 		SetTimer, UpdateDownload, Delete
@@ -7171,7 +7127,7 @@ Settings_updater2(cHWND := "")
 	}
 	Else If (check = "github")
 	{
-		Run, % "https://github.com/Lailloken/Exile-UI/archive/refs/tags/v" vars.update.2 ".zip"
+		Run, https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/releases/latest
 		Run, explore %A_ScriptDir%
 		ExitApp
 	}
@@ -7426,7 +7382,7 @@ Settings_LeagueSelection2(cHWND := "")
 	{
 		KeyWait, LButton
 		FileDelete, % "data\global\league update.json"
-		UrlDownloadToFile, % "https://raw.githubusercontent.com/Lailloken/Exile-UI/refs/heads/misc/leagues" StrReplace(vars.poe_version, " ", "%20") ".json", % "data\global\league update.json"
+1ErrorLevel := 1
 		If ErrorLevel || !FileExist("data\global\league update.json")
 		{
 			LLK_ToolTip(Lang_Trans("global_fail"),,,,, "Red")

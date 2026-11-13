@@ -1090,30 +1090,8 @@ MouseHover()
 
 News(mode := "")
 {
-	local
-	global vars, settings, json
-
-	If !IsObject(vars.news.file)
-		vars.news.file := json.Load(LLK_FileRead("data\announcements.json")), vars.news.last_read := LLK_IniRead("ini\config.ini", "versions", "announcement", 0)
-	vars.news.wait := 1
-	If !settings.general.dev
-	{
-		Try string := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/refs/heads/" (settings.general.dev_env ? "dev" : "main") "/data/announcements.json")
-		Try object := json.Load(string)
-
-		If !Blank(object.timestamp) && (object.timestamp != vars.news.file.timestamp)
-		{
-			vars.news.file := json.Load(LLK_StringCase(string))
-			file_new := FileOpen("data\announcements.json", "w", "UTF-8-RAW")
-			file_new.Write(string), file_new.Close()
-		}
-	}
-	now := A_NowUTC, timestamp := StrReplace(StrReplace(StrReplace(vars.news.file.timestamp, " "), ":"), "-")
-	EnvSub, now, timestamp, Days
-
-	If !vars.news.unread && (IsNumber(now) && now < 7) && vars.news.file.timestamp && (vars.news.file.timestamp != vars.news.last_read)
-		vars.news.unread := 1
-	vars.news.wait := 0
+    global vars
+    vars.news.wait := 0, vars.news.unread := 0
 }
 
 Resolution_check()

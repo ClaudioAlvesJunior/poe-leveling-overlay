@@ -435,53 +435,5 @@ Legion_Tree()
 
 Legion_Update()
 {
-	local
-	global vars, settings
-
-	jewels := ["glorious vanity", "lethal pride", "brutal restraint", "militant faith", "elegant hubris"]
-	For index, val in jewels
-		If FileExist("data\global\[legion] " val ".csv")
-			count := !count ? 1 : count + 1
-
-	Try version_check := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/" (settings.general.dev_env ? "dev" : "main") "/data/global/%5Blegion%5D%20version.txt")
-	If Blank(version_check) || InStr(version_check, "404: not found")
-	{
-		LLK_ToolTip(Lang_Trans("global_error") ": version-check", 2,,,, "Red")
-		Return
-	}
-	version_online := StrReplace(StrReplace(version_check, "`n"), "`r")
-
-	If (count = 5)
-	{
-		update := (version_online > settings.legion.version) ? 1 : 0
-		If !update
-			LLK_ToolTip(Lang_Trans("seed_uptodate"),,,,, "Lime")
-	}
-
-	If (count != 5) || update
-	{
-		LLK_ToolTip("downloading...", 0,,, "legion_update", "Lime")
-		GuiControl, +cGreen, % vars.hwnd.legion.update_bar
-		GuiControl, movedraw, % vars.hwnd.legion.update_bar
-		GuiControl,, % vars.hwnd.legion.update_bar, 0
-		For index, val in jewels
-		{
-			UrlDownloadToFile, % "https://raw.githubusercontent.com/Lailloken/Exile-UI/" (settings.general.dev_env ? "dev" : "main") "/data/global/%5Blegion%5D%20" StrReplace(val, " ", "%20") ".csv", % "data\global\[legion] " val ".csv"
-			If ErrorLevel
-			{
-				error := 1
-				GuiControl, +cRed, % vars.hwnd.legion.update_bar
-				GuiControl, movedraw, % vars.hwnd.legion.update_bar
-				Break
-			}
-			Else GuiControl,, % vars.hwnd.legion.update_bar, % index
-		}
-		LLK_Overlay(vars.hwnd.tooltip_legion_update, "destroy")
-		If !error
-		{
-			IniWrite, % (settings.legion.version := version_online), ini\seed-explorer.ini, settings, version
-			vars.legion := {}, Legion_Parse(), Legion_GUI(), LLK_ToolTip(Lang_Trans("global_success"), 1,,,, "Lime")
-		}
-		Else LLK_ToolTip(Lang_Trans("global_error"), 2,,, "Red")
-	}
+    LLK_ToolTip("Dados de joias atemporais indisponíveis nesta edição.", 2)
 }

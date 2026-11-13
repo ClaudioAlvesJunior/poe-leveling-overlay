@@ -116,26 +116,10 @@ Actdecoder_ImageSelect(pic)
 
 Actdecoder_UpdateCheck()
 {
-	local
-	global vars, settings, json
-
-	Try update_check := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/refs/heads/layouts" StrReplace(vars.poe_version, " ", "_") "/version" StrReplace(vars.poe_version, " ", "%20") ".json")
-	If update_check
-		Try live := json.Load(update_check)
-
-	If live.version
-		vars.actdecoder.updater.check := live.Clone()
-	Else vars.actdecoder.updater.check := "failed"
-
-	vars.actdecoder.updater.last := A_NowUTC
-	If !(live.version > vars.actdecoder.version)
-		Return
-	vars.actdecoder.updater.available := 1
-	If vars.actdecoder.tab && WinExist("ahk_id " vars.hwnd.actdecoder.main)
-	{
-		vars.hwnd.help_tooltips.Delete("actdecoder_help panel"), vars.hwnd.help_tooltips.actdecoder_update := vars.hwnd.actdecoder.helppanel_bar
-		GuiControl, % "+BackgroundLime", % vars.hwnd.actdecoder.helppanel_bar
-	}
+    global vars
+    vars.actdecoder.updater.last := A_NowUTC
+    vars.actdecoder.updater.available := 0
+    vars.actdecoder.updater.check := {version: vars.actdecoder.version}
 }
 
 Actdecoder_ZoneLayouts(mode := 0, click := 0, cHWND := "")

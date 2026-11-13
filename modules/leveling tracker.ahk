@@ -2790,23 +2790,10 @@ Leveltracker_PobSkilltree(mode := "", ByRef failed_versions := "")
 	{
 		version := SubStr(mode, InStr(mode, " ") + 1), dev := settings.general.dev_env
 		If !FileExist(file := "data\global\[leveltracker] tree" vars.poe_version " " version ".json")
-		{
-			LLK_ToolTip(Lang_Trans("global_downloading"), 2,,,, "Yellow")
-			Try download := HTTPtoVar("https://raw.githubusercontent.com/Lailloken/Exile-UI/refs/heads/" (dev ? "dev" : "main") "/data/global/%5Bleveltracker%5D%20tree" vars.poe_version "%20" version ".json")
-			If (SubStr(download, 1, 1) . SubStr(download, 0) != "{}")
-			{
-				failed_versions[version] := 1
-				Return
-			}
-			file_new := FileOpen(file, "w", "UTF-8-RAW")
-			file_new.Write(download), file_new.Close()
-			Sleep 500
-			If !FileExist(file)
-			{
-				LLK_FilePermissionError("create", file), failed_versions[version] := 1
-				Return
-			}
-		}
+        {
+            failed_versions[version] := 1
+            Return
+        }
 		If !db.leveltracker.trees[version].Count()
 			db.leveltracker.trees[version] := json.Load(LLK_FileRead(file)), db.leveltracker.trees[version].constants.orbitradii.RemoveAt(0), db.leveltracker.trees[version].constants.skillsperorbit.RemoveAt(0)
 		Return db.leveltracker.trees[version].Count()
