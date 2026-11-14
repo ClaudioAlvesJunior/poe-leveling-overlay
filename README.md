@@ -14,7 +14,7 @@ Guia de campanha para **Path of Exile 1** no Windows. Importe sua build do Path 
 
 1. Instale o [AutoHotkey 1.1 de 64 bits](https://www.autohotkey.com/download/1.1/) e extraia o [ZIP da versão mais recente](https://github.com/ClaudioAlvesJunior/poe-leveling-overlay/releases/latest).
 2. Abra o Path of Exile 1 em modo janela sem bordas e execute `Exile UI.ahk` na pasta extraída.
-3. Pressione **F5** para abrir a campanha, clique em **Importar PoB** e escolha seu link, código de exportação ou arquivo XML.
+3. O guia aparece sobre o jogo. Pressione **F5** para abrir o painel e clique em **Importar PoB** para ver as recompensas, compras e links da sua build.
 4. Pressione **Ctrl+L** para consultar os atalhos dentro do jogo.
 
 ## O que você pode acompanhar

@@ -1573,6 +1573,7 @@ Leveltracker_Load(profile := "")
 		For iPage, oPage in json.load(ini.guide["act" A_Index])
 			import.Push(oPage)
 	vars.leveltracker.guide.import := LLK_CloneObject(import)
+	vars.leveltracker.guide.acquisitions := []
 
 	reward_gems := {}, vendor_gems := {}, gems_all := {}, vars.leveltracker.skillsets := []
 	vars.leveltracker.guide.gems := (settings.leveltracker["guide" (profile ? profile : current_profile)].info.leaguestart ? ["quicksilver flask"] : [])
@@ -1606,10 +1607,12 @@ Leveltracker_Load(profile := "")
 	skipped_quests := [], lilly_regex := "(" Lang_Trans("quest_mercy") "|" Lang_Trans("quest_fixture") "|" Lang_Trans("quest_fallen") ")"
 	For iPage, aPage in vars.leveltracker.guide.import
 	{
+		acquisitions := [], vars.leveltracker.guide.acquisitions.Push(acquisitions)
 		If !Leveltracker("condition", iPage) || !LLK_HasVal(aPage, ": <", 1,,, 1)
 			Continue
 
 		new_group := [], quests_page := {}, delete := [], reward_available := {}, vendor_available := {}, quest_check := 0
+		lilly_shop := {}
 		For index, line in (aPage.condition ? aPage.lines : aPage)
 		{
 			If !InStr(line, "<")
@@ -1622,8 +1625,12 @@ Leveltracker_Load(profile := "")
 
 			quests_line := [], loop := 1
 			While InStr(line, "<",,, loop)
-				quest := SubStr(line, InStr(line, "<",,, loop) + 1), quest := SubStr(quest, 1, InStr(quest, ">") - 1), quests_line.Push(StrReplace(quest, "_", " "))
-				, quests_page[StrReplace(quest, "_", " ")] := 1, loop += 1
+			{
+				quest := SubStr(line, InStr(line, "<",,, loop) + 1), quest := StrReplace(SubStr(quest, 1, InStr(quest, ">") - 1), "_", " ")
+				quests_line.Push(quest), quests_page[quest] := 1, loop += 1
+				If InStr(line, Lang_Trans("quest_lilly") ":") && InStr(line, "buy_gems")
+					lilly_shop[quest] := 1
+			}
 
 			If InStr(line, "quest-check")
 			{
@@ -1640,6 +1647,7 @@ Leveltracker_Load(profile := "")
 						{
 							gem_name := (db.leveltracker.gems[gem].name ? db.leveltracker.gems[gem].name : gem)
 							new_group.Push("(hint)__ " Lang_Trans("lvltracker_gemreward") " " ((check := gems[gem].attribute) ? "(color:" stat_colors[check] ")" : "") StrReplace(StrReplace(gem_name, " support"), " ", "_"))
+							acquisitions.Push({gem: gem, quest: quest, buy: 0})
 							vars.leveltracker.guide.gems[index] := "", reward_available[quest] := 1
 							If (gem = "quicksilver flask")
 								Continue
@@ -1663,6 +1671,7 @@ Leveltracker_Load(profile := "")
 							While RegexMatch(new_group[last_quest_line], "i)\(hint\)|\(img\:quest\)")
 								last_quest_line += 1
 							new_group.InsertAt(last_quest_line, "buy gem: " gem)
+							acquisitions.Push({gem: gem, quest: kQuest, buy: 1, hideout: lilly_shop[kQuest]})
 							Continue 2
 						}
 
@@ -1726,7 +1735,7 @@ Leveltracker_Load(profile := "")
 	}
 
 	For index, page in remove
-		vars.leveltracker.guide.import.RemoveAt(page - array_offset), array_offset += 1
+		vars.leveltracker.guide.import.RemoveAt(page - array_offset), vars.leveltracker.guide.acquisitions.RemoveAt(page - array_offset), array_offset += 1
 }
 
 Leveltracker_ScreencapMenu()
@@ -2802,7 +2811,6 @@ Leveltracker_PobSkilltree(mode := "", ByRef failed_versions := "")
 	profile := settings.leveltracker.profile, active := vars.leveltracker["PoB" profile]["active tree"]
 	If (active > vars.leveltracker["PoB" profile].trees.Count())
 		IniWrite, % (active := vars.leveltracker["PoB" profile]["active tree"] := 1), % "ini" vars.poe_version "\leveling guide" profile ".ini", PoB, active tree
-	version := vars.leveltracker["PoB" profile].trees[active].version
 	scale := "0." (StrLen(vars.client.h) < 4 ? "0" : "") vars.client.h
 
 	If (mode = "drag")
@@ -2829,6 +2837,7 @@ Leveltracker_PobSkilltree(mode := "", ByRef failed_versions := "")
 	Else If (mode = "reset")
 		vars.leveltracker.skilltree_schematics.xPos := "reset"
 
+	version := vars.leveltracker["PoB" profile].trees[active].version
 	If !version || !Leveltracker_PobSkilltree("init " version) || !vars.leveltracker["PoB" profile].trees.Count()
 	{
 		LLK_ToolTip(Lang_Trans("lvltracker_" (!vars.leveltracker["PoB" profile].trees.Count() ? "treenone" : "treeerror")), 2,,,, "Red")

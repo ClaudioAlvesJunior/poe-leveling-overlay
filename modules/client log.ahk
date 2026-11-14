@@ -15,15 +15,28 @@
 
 	If !mode
 		settings.general.character := LLK_IniRead("ini" vars.poe_version "\config.ini", "settings", "active character")
-		, log_file := vars.log.file := FileOpen(vars.log.file_location, "a", "UTF-8"), vars.log.file_size := filesize
-	Else log_file := FileOpen(vars.log.file_location, "a", "UTF-8")
+		, log_file := vars.log.file := FileOpen(vars.log.file_location, "r", "UTF-8"), vars.log.file_size := filesize
+	Else log_file := FileOpen(vars.log.file_location, "r", "UTF-8")
 
+	If !IsObject(log_file)
+		Return
+
+	log_file.Seek(0, 2)
 	max_pointer := log_file.Tell()
 	Loop
 	{
 		move := Min(max_pointer, 3 * A_Index * 1024000), log_file.Seek(-move, 2), log_read := log_file.Read(3*1024000)
-		If !mode && !IsObject(log_content) && (check := InStr(log_read, " Generating level ", 1, 0, 3))
-			log_content := StrSplit(SubStr(log_read, check), "`n", "`r" vars.lang.system_fullstop.1)
+		If !mode && !IsObject(log_content)
+		{
+			check := InStr(log_read, " Generating level ", 1, 0, 3)
+			If !check && (max_pointer = move)
+				check := InStr(log_read, " Generating level ", 1, 0)
+			If check
+			{
+				line_start := InStr(SubStr(log_read, 1, check), "`n", 1, 0) + 1
+				log_content := StrSplit(SubStr(log_read, line_start), "`n", "`r" vars.lang.system_fullstop.1)
+			}
+		}
 
 		If settings.general.character && Blank(log_character.1) && InStr(log_read, settings.general.character)
 		{
@@ -72,8 +85,12 @@
 	If !mode
 	{
 		vars.log.access_time := A_TickCount - start
-		If vars.log.latest_location
-			vars.log.file.Close(), vars.log.file := FileOpen(vars.log.latest_location, "a", "UTF-8")
+		If vars.poe_version && vars.log.latest_location
+		{
+			log_file := FileOpen(vars.log.latest_location, "r", "UTF-8")
+			If IsObject(log_file)
+				log_file.Seek(0, 2), vars.log.file.Close(), vars.log.file := log_file
+		}
 	}
 }
 
@@ -201,7 +218,7 @@ Log_Loop(mode := 0)
 		If IsObject(vars.log.file) && !FileExist(vars.log.file_location)
 			vars.log.file.Close(), vars.log.file := ""
 		Else If !IsObject(vars.log.file) && FileExist(vars.log.file_location)
-			vars.log.file := FileOpen(vars.log.file_location, "a", "UTF-8")
+			Init_log()
 
 	guide := vars.leveltracker.guide ;short-cut variable
 	If !vars.news.wait && (!news_check || (A_TickCount >= news_check + 1800000))
@@ -210,7 +227,7 @@ Log_Loop(mode := 0)
 		SetTimer, News, -100
 	}
 
-	If vars.log.file_wait || !WinActive("ahk_group poe_ahk_window") || !vars.log.file_location || !WinExist("ahk_group poe_window") || !FileExist(vars.log.file_location)
+	If vars.log.file_wait || !IsObject(vars.log.file) || !WinActive("ahk_group poe_ahk_window") || !vars.log.file_location || !WinExist("ahk_group poe_window") || !FileExist(vars.log.file_location)
 	{
 		If WinExist("ahk_id " vars.hwnd.maptracker.main)
 			LLK_Overlay(vars.hwnd.maptracker.main, "destroy")
@@ -252,8 +269,10 @@ Log_Loop(mode := 0)
 			vars.log[A_LoopField] := %A_LoopField%
 			If (A_LoopField = "areaID")
 				If !vars.poe_version
-					vars.log.areaname := "" ;make it blank because there sometimes is a desync between it and areaID, i.e. they are parsed in two separate loop-ticks
+					vars.log.areaname := db.leveltracker.areaIDs[areaID].name
 				Else vars.log.areaname := Log_Get(areaID, "areaname")
+			If (A_LoopField = "areaID" && !vars.poe_version)
+				vars.log.act := act
 		}
 		If (auto_track = 1)
 			level0 := 0
@@ -339,7 +358,8 @@ Log_Loop(mode := 0)
 	If settings.qol.lab && InStr(vars.log.areaID, "labyrinth_") && !InStr(vars.log.areaID, "Airlock") && vars.log.areaseed && vars.lab.rooms.Count() && !vars.lab.rooms[vars.lab.room.1].seed
 		vars.lab.rooms[vars.lab.room.1].seed := vars.log.areaseed, vars.lab.room.3 := vars.log.areaseed
 
-	If settings.features.leveltracker && (A_TickCount >= vars.leveltracker.last_manual + 2000) && vars.hwnd.leveltracker.main && (vars.log.areaID = vars.leveltracker.guide.target_area) && !vars.leveltracker.fast ;advance the guide when entering target-location
+	If (!IsFunc("BuildGuide_CampaignActive") || !Func("BuildGuide_CampaignActive").Call()) && settings.features.leveltracker
+	&& (A_TickCount >= vars.leveltracker.last_manual + 2000) && vars.hwnd.leveltracker.main && (vars.log.areaID = vars.leveltracker.guide.target_area) && !vars.leveltracker.fast ;advance the guide when entering target-location
 		vars.leveltracker.guide.target_area := "", Leveltracker("+")
 
 	If !vars.poe_version && settings.features.mapinfo && vars.mapinfo.expedition_areas && vars.log.areaname && !Blank(LLK_HasVal(vars.mapinfo.expedition_areas, vars.log.areaname)) && !vars.mapinfo.active_map.expedition_filter
@@ -374,6 +394,8 @@ Log_Parse(content, ByRef areaID, ByRef areaname, ByRef areaseed, ByRef arealevel
 				areaID := SubStr(areaID, 1, -1)
 			date_time := SubStr(loopfield, 1, InStr(loopfield, " ",,, 2) - 1)
 			act := LLK_HasVal(db.leveltracker.areas, areaID,,,, 1)
+			If !vars.poe_version
+				areaname := db.leveltracker.areaIDs[areaID].name
 			If vars.poe_version && !act && IsNumber(SubStr(areaID, 2, 1))
 				act := SubStr(areaID, 2, 1)
 			arealevel := parse := SubStr(loopfield, InStr(loopfield, "level ") + 6, InStr(loopfield, " area """) - InStr(loopfield, "level ") - 6)
@@ -384,7 +406,7 @@ Log_Parse(content, ByRef areaID, ByRef areaname, ByRef areaseed, ByRef arealevel
 			Else areatier := arealevel
 		}
 		Else If InStr(loopfield, " connected to ") && InStr(loopfield, ".login.") || InStr(loopfield, "*****")
-			areaID := "login"
+			areaID := "login", act := "", areaname := ""
 
 		/* this log-msg was removed at some point from PoE2 but is still present in PoE1
 		Else If InStr(loopfield, "current input mode = ")

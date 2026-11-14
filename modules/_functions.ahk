@@ -36,7 +36,7 @@ DB_Load(database)
 	{
 		lang := settings.general.lang, lang2 := settings.general.lang_client
 		If !vars.poe_version
-			db.leveltracker := {"areas": Json.Load(LLK_FileRead("data\" (FileExist("data\" lang "\[leveltracker] areas.json") ? lang : "english") "\[leveltracker] areas.json"))
+			db.leveltracker := {"areas": Json.Load(LLK_FileRead("data\" (FileExist("data\" lang "\[leveltracker] areas.json") ? lang : "english") "\[leveltracker] areas.json", 1))
 			, "gems": Json.Load(LLK_FileRead("data\" (FileExist("data\" lang "\[leveltracker] gems.json") ? lang : "english") "\[leveltracker] gems.json"))
 			, "trees": {"supported": ["3_29", "3_30"]}}
 		Else

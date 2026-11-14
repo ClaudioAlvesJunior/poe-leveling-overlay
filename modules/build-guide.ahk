@@ -4,7 +4,9 @@ BuildGuide_Init()
 {
     global vars, BuildGuide, db
     FileCreateDir, build-guide
-    BuildGuide := {directory: "build-guide", tab: 6, stage: 1, profile: "", run: ""}
+    BuildGuide := {directory: "build-guide", tab: 6, stage: 1, profile: "", run: ""
+        , preferenceFile: "ini\leveling tracker.ini"}
+    BuildGuide.leveling := LLK_IniRead(BuildGuide.preferenceFile, "Overlay", "campanha", 1)
     BuildGuide_LoadCached()
     Menu, Tray, Add, Abrir painel, BuildGuide_Open
     Menu, Tray, Default, Abrir painel
@@ -128,7 +130,9 @@ BuildGuide_Parse(xml)
         throw Exception("A exportação não contém os dados da build.")
     className := build.getAttribute("className")
     StringLower, className, className
-    guide := {class: className, items: {}, trees: [], skills: [], sets: [], stages: []}
+    treeList := doc.selectSingleNode("/PathOfBuilding/Tree")
+    activeTree := IsObject(treeList) ? treeList.getAttribute("activeSpec") + 0 : 0
+    guide := {class: className, items: {}, trees: [], skills: [], sets: [], stages: [], activeTree: Max(1, activeTree)}
     for node in doc.selectNodes("/PathOfBuilding/Items/Item")
         guide.items[node.getAttribute("id") + 0] := BuildGuide_Item(node.text)
     for node in doc.selectNodes("/PathOfBuilding/Items/ItemSet")
@@ -150,7 +154,7 @@ BuildGuide_Parse(xml)
         }
         title := "" node.getAttribute("title")
         guide.trees.Push({title: title, version: "" node.getAttribute("treeVersion"), sockets: sockets
-            , nodes: "" node.getAttribute("nodes")})
+            , nodes: "" node.getAttribute("nodes"), masteries: BuildGuide_ParseMasteries(node.getAttribute("masteryEffects"))})
     }
     for node in doc.selectNodes("/PathOfBuilding/Skills/SkillSet")
         guide.skills.Push(BuildGuide_SkillSet(node, guide.skills.Count() + 1))
@@ -176,6 +180,17 @@ BuildGuide_Parse(xml)
         guide.stages.Push(stage)
     }
     return guide
+}
+
+BuildGuide_ParseMasteries(value)
+{
+    result := {}, position := 1
+    while (position := RegExMatch(value, "\{(\d+),\s*(\d+)\}", pair, position))
+    {
+        result[pair1 + 0] := pair2 + 0
+        position += StrLen(pair)
+    }
+    return result
 }
 
 BuildGuide_ItemSet(node, index)
@@ -311,6 +326,7 @@ BuildGuide_LoadCached()
     BuildGuide.profile := profile, BuildGuide.lastAct := 0
     cache := BuildGuide.directory "\pob-" (profile ? profile : "1") ".xml"
     BuildGuide.guide := "", BuildGuide.stage := 1, BuildGuide.manual := 0, BuildGuide.priorities := {}
+    BuildGuide.treeTarget := 0, BuildGuide.levelingKey := ""
     if FileExist(cache)
     {
         FileRead, raw, *P65001 %cache%
@@ -340,6 +356,7 @@ BuildGuide_Import(source)
     BuildGuide_Write(path, xml)
     Gui, BGEditor: Destroy
     BuildGuide.routeProfile := -1
+    BuildGuide.treeTarget := 0, BuildGuide.levelingKey := ""
     BuildGuide.guide := guide, BuildGuide.stage := 1, BuildGuide.manual := 0, BuildGuide.lastAct := 0
     BuildGuide_SetAct(vars.log.act)
     Init_leveltracker()
@@ -420,6 +437,9 @@ BuildGuide_DrawPanel(focus := false)
         Gui, BGPanel: Font, s9 w600 cC29BFF
         Gui, BGPanel: Add, Text, x196 y23 w330 h20 vBGContext, PATH OF EXILE 1
         BuildGuide_Action("BGImportAction", "BGImport", "Importar PoB", 606, 18, 136, true)
+        BuildGuide_Action("BGStartAction", "BGStartLeveling", "Iniciar leveling", 455, 18, 142, true)
+        BuildGuide_Action("BGCompareAction", "BGCompareTree", "Conferir passivas", 366, 474, 146)
+        BuildGuide_Action("BGHideLevelingAction", "BGToggleLeveling", "Ocultar overlay", 525, 474, 142)
         Gui, BGPanel: Font, s21 w700 cFAF3FF
         Gui, BGPanel: Add, Text, x195 y47 w550 h43 vBGSection
         Gui, BGPanel: Font, s10 w400 cC6B5D8
@@ -438,7 +458,7 @@ BuildGuide_DrawPanel(focus := false)
         Gui, BGPanel: Add, DropDownList, x196 y177 w255 AltSubmit vBGRouteMode, Início de liga|Segundo personagem
         Gui, BGPanel: Add, Text, x474 y151 w268 h20 vBGPrefProfileLabel, Perfil do PoB
         Gui, BGPanel: Add, DropDownList, x474 y177 w268 AltSubmit vBGProfile gBGSelectProfile, Perfil 1|Perfil 2|Perfil 3|Perfil 4|Perfil 5
-        Gui, BGPanel: Add, Checkbox, x196 y228 w530 h24 vBGRouteGems, Incluir quests de gemas
+        Gui, BGPanel: Add, Checkbox, x196 y228 w530 h24 vBGRouteGems, Incluir missões de gemas
         Gui, BGPanel: Add, Checkbox, x196 y259 w530 h24 vBGRouteOptional, Incluir desvios opcionais
         Gui, BGPanel: Add, Text, x196 y305 w530 h20 vBGPrefBanditLabel, Bandidos do Ato 2
         Gui, BGPanel: Add, DropDownList, x196 y330 w255 AltSubmit vBGRouteBandit, Matar todos|Alira|Kraityn|Oak
@@ -462,7 +482,7 @@ BuildGuide_DrawPanel(focus := false)
     }
     else if (page = 7)
     {
-        title := "Escolha o perfil e ajuste os desvios da campanha."
+        title := "Ajuste a rota ou compare um XML atualizado do personagem."
         profile := settings.leveltracker.profile
         info := settings.leveltracker["guide" profile].info
         GuiControl, BGPanel:Choose, BGRouteMode, % info.leaguestart ? 1 : 2
@@ -497,6 +517,11 @@ BuildGuide_DrawPanel(focus := false)
     for _, control in ["BGRunAction", "BGFinishAction", "BGRecordsAction"]
         BuildGuide_ControlVisible(control, page = 5)
     BuildGuide_ControlVisible("BGEditAction", page >= 2 && page <= 4 && IsObject(stage))
+    BuildGuide_ControlVisible("BGStartAction", !BuildGuide.leveling || !IsObject(BuildGuide.run)
+        || BuildGuide.run.paused || BuildGuide.run.saved)
+    BuildGuide_ControlVisible("BGCompareAction", page = 7 && IsObject(guide))
+    GuiControl, BGPanel:, % BuildGuide.actions.BGHideLevelingAction.label, % BuildGuide.leveling ? "Ocultar overlay" : "Mostrar overlay"
+    BuildGuide_ControlVisible("BGHideLevelingAction", page = 7)
     BuildGuide_ControlVisible("BGText", page != 7)
     GuiControl, BGPanel:, BGStageTitle, %title%
     GuiControl, BGPanel:, BGText, %contents%
@@ -623,7 +648,7 @@ BuildGuide_LoadRoute()
         Leveltracker_GuideEditor("default#" profile)
     Leveltracker_Load()
     BuildGuide.routeProfile := profile ? profile : "1"
-    BuildGuide.routeLastArea := ""
+    BuildGuide.routeLastArea := "", BuildGuide.levelingKey := ""
 }
 
 BuildGuide_RoutePage(index)
@@ -633,44 +658,74 @@ BuildGuide_RoutePage(index)
     if !IsObject(page) || !Leveltracker("condition", index)
         return ""
     info := settings.leveltracker["guide" settings.leveltracker.profile].info
-    result := {lines: [], target: ""}
+    result := {index: index, lines: [], destinations: [], target: "", acquisitions: vars.leveltracker.guide.acquisitions[index]}
     for _, line in (page.condition ? page.lines : page)
     {
         if (info.leaguestart && InStr(line, Lang_Trans("lvltracker_format_twink"))
             || !info.leaguestart && InStr(line, Lang_Trans("lvltracker_format_league"))
             || !info.optionals && InStr(line, "optional:"))
             continue
-        if !InStr(line, "(hint)") && RegExMatch(line, "i)areaid([a-z0-9_]+)", area)
-            result.target := area1
+        if !InStr(line, "(hint)")
+        {
+            directive := RegExReplace(line, "\s*;;.*$")
+            pos := 1
+            while (pos := RegExMatch(directive, "i)areaid([a-z0-9_]+)", area, pos))
+            {
+                result.destinations.Push(area1), result.target := area1
+                pos += StrLen(area)
+            }
+        }
         result.lines.Push(line)
     }
     return result.lines.Count() ? result : ""
 }
 
-BuildGuide_RouteText()
+BuildGuide_RouteStep(index, direction := 1)
 {
-    global BuildGuide, vars, db
+    global vars
+    limit := vars.leveltracker.guide.import.Count()
+    while (index >= 1 && index <= limit)
+    {
+        page := BuildGuide_RoutePage(index)
+        if IsObject(page)
+            return page
+        index += direction
+    }
+    return ""
+}
+
+BuildGuide_AreaName(area)
+{
+    global db, vars
+    name := db.leveltracker.areaIDs[area].name
+    return name ? name : (area = vars.log.areaID && vars.log.areaname ? vars.log.areaname : area)
+}
+
+BuildGuide_RouteText(compact := false)
+{
+    global BuildGuide, vars
     BuildGuide_LoadRoute()
     guide := vars.leveltracker.guide
-    index := guide.progress + 1
-    while (index <= guide.import.Count() && !IsObject(page := BuildGuide_RoutePage(index)))
-        index++
+    page := BuildGuide_RouteStep(guide.progress + 1)
     if !IsObject(page)
         return "Fim da rota de campanha."
-    result := "Etapa " index " / " guide.import.Count()
+    eol := Chr(13) Chr(10)
+    result := "Etapa " page.index " / " guide.import.Count()
     for _, line in page.lines
     {
+        if compact && RegExMatch(line, "i)^buy gem:|^\(hint\)_*\s*\Q" Lang_Trans("lvltracker_gemreward") "\E")
+            continue
         line := RegExReplace(line, "\s*;;.*$")
+        line := BuildGuide_RoutePortuguese(line)
         while RegExMatch(line, "i)areaid([a-z0-9_]+)", area)
-            line := StrReplace(line, area, db.leveltracker.areaIDs[area1].name ? db.leveltracker.areaIDs[area1].name : area1)
-        line := RegExReplace(line, "i)\(hint\)_*", "Dica: ")
-        line := RegExReplace(line, "i)\(img:([^)]*)\)", " $1 ")
+            line := StrReplace(line, area, BuildGuide_AreaName(area1))
+        line := RegExReplace(line, "i)\(quest:([^)]*)\)", "$1")
         line := RegExReplace(line, "i)\(color:[^)]*\)|[<>]")
         line := RegExReplace(line, "i)^\s*(?:leaguestart|twinkrun):\s*")
         line := StrReplace(line, "_", " ")
         line := Trim(RegExReplace(line, "[ \t]+", " "))
         if line
-            result .= Chr(13) Chr(10) Chr(13) Chr(10) "• " line
+            result .= eol (compact ? "" : eol) "• " line
     }
     return result
 }
@@ -680,36 +735,24 @@ BuildGuide_MoveRoute(delta, follow := false)
     global BuildGuide, vars, settings
     BuildGuide_LoadRoute()
     guide := vars.leveltracker.guide
-    index := guide.progress + 1
-    limit := guide.import.Count()
-    while (index <= limit && !IsObject(BuildGuide_RoutePage(index)))
-        index++
+    page := BuildGuide_RouteStep(guide.progress + 1)
+    index := IsObject(page) ? page.index : guide.import.Count() + 1
     if follow
     {
-        for next, _ in guide.import
-        {
-            if (next < index)
-                continue
-            page := BuildGuide_RoutePage(next)
-            if (IsObject(page) && page.target != "" && page.target = vars.log.areaID)
-            {
-                BuildGuide_SaveRoute(next)
-                return true
-            }
-        }
-        return false
+        area := vars.log.areaID
+        next := area = "1_1_1" ? 1 : BuildGuide_LocateRoute(area, index)
     }
-    next := index + delta
-    while (next >= 1 && next <= limit)
+    else if (delta > 0 && IsObject(page))
+        next := page.index + 1
+    else if (delta < 0)
     {
-        if IsObject(BuildGuide_RoutePage(next))
-        {
-            BuildGuide_SaveRoute(next)
-            return true
-        }
-        next += delta
+        previous := BuildGuide_RouteStep(index - 1, -1)
+        next := previous.index
     }
-    return false
+    if !next
+        return false
+    BuildGuide_SaveRoute(next)
+    return true
 }
 
 BuildGuide_SaveRoute(index)
@@ -720,6 +763,24 @@ BuildGuide_SaveRoute(index)
     IniWrite, % index - 1, %path%, Progress, pages
 }
 
+BuildGuide_LocateRoute(area, nearIndex)
+{
+    global vars
+    if (area = "")
+        return 0
+    best := 0, distance := vars.leveltracker.guide.import.Count() + 2
+    for index, _ in vars.leveltracker.guide.import
+    {
+        page := BuildGuide_RoutePage(index)
+        if !IsObject(page) || !LLK_HasVal(page.destinations, area)
+            continue
+        destination := page.target = area ? index + 1 : index
+        if (Abs(destination - nearIndex) < distance)
+            best := destination, distance := Abs(destination - nearIndex)
+    }
+    return best
+}
+
 BuildGuide_UpdateRoute()
 {
     global BuildGuide, vars
@@ -728,10 +789,42 @@ BuildGuide_UpdateRoute()
     area := vars.log.areaID
     if (area = "" || area = BuildGuide.routeLastArea)
         return
+    previous := BuildGuide.routeLastArea
     BuildGuide.routeLastArea := area
-    if BuildGuide_MoveRoute(0, true) && BuildGuide.tab = 6 && BuildGuide.panel
-        && DllCall("IsWindowVisible", "Ptr", BuildGuide.panel)
+    if (area = "1_1_1")
+        next := 1
+    else
+        next := BuildGuide_RouteArrival(area, previous)
+    if !next
+        return
+    if (next != vars.leveltracker.guide.progress + 1)
+        BuildGuide_SaveRoute(next)
+    if (BuildGuide.tab = 6 && BuildGuide.panel
+        && DllCall("IsWindowVisible", "Ptr", BuildGuide.panel))
         BuildGuide_DrawPanel()
+}
+
+BuildGuide_RouteArrival(area, previousArea)
+{
+    global vars
+    page := BuildGuide_RouteStep(vars.leveltracker.guide.progress + 1)
+    if !IsObject(page)
+        return 0
+    if (previousArea = "" || previousArea = "login")
+    {
+        previous := BuildGuide_RouteStep(page.index - 1, -1)
+        while IsObject(previous) && !previous.target
+            previous := BuildGuide_RouteStep(previous.index - 1, -1)
+        if (previous.target = area)
+            return 0
+        if (page.target = area)
+            return page.index + 1
+        return BuildGuide_LocateRoute(area, page.index)
+    }
+    ; Objectives with no destination stay visible until the player moves on.
+    while IsObject(page) && !page.target
+        page := BuildGuide_RouteStep(page.index + 1)
+    return IsObject(page) && page.target = area ? page.index + 1 : 0
 }
 
 BuildGuide_ToggleHelp()
@@ -830,6 +923,362 @@ BGPanelGuiEscape:
 Gui, BGPanel: Hide
 return
 
+
+BGStartLeveling()
+{
+    global BuildGuide, vars
+    if (BuildGuide.tab = 7)
+        BGSavePreferences()
+    BuildGuide_LoadRoute()
+    BuildGuide_UpdateRoute()
+    BuildGuide_SetAct(vars.log.act)
+    if !IsObject(BuildGuide.run) || BuildGuide.run.saved || BuildGuide.run.paused
+        BuildGuide_Run()
+    BuildGuide_SetOverlay(true)
+    Gui, BGPanel: Hide
+    if vars.hwnd.poe_client
+        WinActivate, % "ahk_id " vars.hwnd.poe_client
+    BuildGuide_UpdateClock()
+    BuildGuide_UpdateLeveling()
+}
+
+BGHideLeveling()
+{
+    BuildGuide_SetOverlay(false)
+    BuildGuide_DrawPanel()
+}
+
+BGToggleLeveling()
+{
+    global BuildGuide
+    if BuildGuide.leveling
+        BGHideLeveling()
+    else
+    {
+        BuildGuide_SetOverlay(true)
+        BuildGuide_DrawPanel()
+    }
+}
+
+BuildGuide_SetOverlay(visible)
+{
+    global BuildGuide
+    BuildGuide.leveling := visible, BuildGuide.levelingKey := ""
+    IniWrite, % (visible ? 1 : 0), % BuildGuide.preferenceFile, Overlay, campanha
+    if !visible && BuildGuide.levelingHwnd
+        Gui, BGLeveling: Hide
+}
+
+BGRouteBack()
+{
+    BuildGuide_MoveRoute(-1)
+    BuildGuide_UpdateLeveling()
+}
+
+BGRouteNext()
+{
+    BuildGuide_MoveRoute(1)
+    BuildGuide_UpdateLeveling()
+}
+
+BGRouteFollow()
+{
+    BuildGuide_MoveRoute(0, true)
+    BuildGuide_UpdateLeveling()
+}
+
+BuildGuide_CampaignActive()
+{
+    global BuildGuide, vars
+    return BuildGuide.leveling && !vars.poe_version
+}
+
+BuildGuide_UpdateLeveling()
+{
+    global BuildGuide, vars, BGLevelRoute, BGLevelGems, BGLevelTime, BGLevelStage, BGLevelArea, BGLevelDestination
+    if !BuildGuide.leveling || !vars.hwnd.poe_client || !WinActive("ahk_id " vars.hwnd.poe_client)
+        || (vars.log.areaID = "login") || (vars.log.act > 10)
+        || vars.leveltracker.skilltree_schematics.GUI || BuildGuide.layout
+        || (BuildGuide.help && DllCall("IsWindowVisible", "Ptr", BuildGuide.help))
+    {
+        if BuildGuide.levelingHwnd
+            Gui, BGLeveling: Hide
+        return
+    }
+    BuildGuide_LoadRoute()
+    stage := BuildGuide.guide.stages[BuildGuide.stage]
+    if !BuildGuide.levelingHwnd
+    {
+        Gui, BGLeveling: New, -Caption +ToolWindow +AlwaysOnTop +E0x08000000 +Hwndhwnd, NerdMítico Jr. | Campanha
+        BuildGuide_Theme("BGLeveling", hwnd)
+        Gui, BGLeveling: Margin, 12, 9
+        Gui, BGLeveling: Font, s10 w700 cEBC461, Segoe UI
+        Gui, BGLeveling: Add, Text, xm ym w500 vBGLevelStage
+        Gui, BGLeveling: Font, s9 w400 cF2EAF9
+        Gui, BGLeveling: Add, Text, xm y+5 w500 vBGLevelArea
+        Gui, BGLeveling: Add, Text, xm y+3 w500 vBGLevelDestination
+        Gui, BGLeveling: Font, s9 w600 cC29BFF
+        Gui, BGLeveling: Add, Text, xm y+9 w235, Objetivos
+        Gui, BGLeveling: Add, Text, x+10 yp w255, Gemas e links
+        Gui, BGLeveling: Font, s9 w400 cF2EAF9
+        height := Max(140, Min(250, Round(vars.client.h * 0.25)))
+        Gui, BGLeveling: Add, Edit, xm y+4 w235 h%height% ReadOnly -Tabstop -E0x200 vBGLevelRoute Hwndroute
+        Gui, BGLeveling: Add, Edit, x+10 yp w255 h%height% ReadOnly -Tabstop -E0x200 vBGLevelGems Hwndgems
+        for _, control in [route, gems]
+            DllCall("uxtheme\SetWindowTheme", "Ptr", control, "WStr", "DarkMode_Explorer", "Ptr", 0)
+        Gui, BGLeveling: Font, s9 w600 cEBC461
+        Gui, BGLeveling: Add, Button, xm y+8 w58 h23 -Tabstop gBGRouteBack, Voltar
+        Gui, BGLeveling: Add, Button, x+5 yp w65 h23 -Tabstop gBGRouteNext, Avançar
+        Gui, BGLeveling: Add, Button, x+5 yp w88 h23 -Tabstop gBGRouteFollow, Seguir zona
+        Gui, BGLeveling: Add, Text, x+10 yp+4 w264 vBGLevelTime
+        BuildGuide.levelingHwnd := hwnd
+    }
+    area := vars.log.areaID, areaName := BuildGuide_AreaName(area)
+    key := BuildGuide.profile "|" BuildGuide.stage "|" vars.leveltracker.guide.progress "|" area "|" areaName "|" vars.log.act
+    if (key != BuildGuide.levelingKey)
+    {
+        BuildGuide.levelingKey := key
+        page := BuildGuide_RouteStep(vars.leveltracker.guide.progress + 1)
+        target := BuildGuide_NextArea(page, area)
+        route := BuildGuide_RouteText(true)
+        gems := BuildGuide_LinkGroups(BuildGuide.guide.skills[stage.skill], true)
+        acquisitions := BuildGuide_AcquisitionText(page.acquisitions)
+        eol := Chr(13) Chr(10)
+        if !IsObject(BuildGuide.guide)
+            gems := "Importe seu PoB no painel (F5) para ver suas gemas."
+        else if acquisitions
+            gems := acquisitions eol eol "Links · " stage.title eol gems
+        else
+            gems := "Sem recompensa ou compra nesta etapa." eol eol "Links · " stage.title eol gems
+        title := "NERDMÍTICO JR.  ·  CAMPANHA" (vars.log.act ? "  ·  ATO " vars.log.act : "")
+        location := areaName ? "Você está em " areaName : (vars.log.file_location
+            ? "Aguardando a zona no log do jogo" : "Client.txt indisponível · confira a pasta de logs do jogo")
+        destination := target ? "Próxima área  ·  " BuildGuide_AreaName(target)
+            : (IsObject(page) ? "Conclua os objetivos desta etapa" : "Campanha concluída")
+        GuiControl, BGLeveling:, BGLevelRoute, %route%
+        GuiControl, BGLeveling:, BGLevelGems, %gems%
+        GuiControl, BGLeveling:, BGLevelStage, %title%
+        GuiControl, BGLeveling:, BGLevelArea, %location%
+        GuiControl, BGLeveling:, BGLevelDestination, %destination%
+    }
+    GuiControl, BGLeveling:, BGLevelTime, % BuildGuide_TimeText()
+    position := vars.client.x "|" vars.client.y
+    if !DllCall("IsWindowVisible", "Ptr", BuildGuide.levelingHwnd) || (position != BuildGuide.levelingPosition)
+    {
+        BuildGuide.levelingPosition := position
+        Gui, BGLeveling: Show, % "NA AutoSize x" (vars.client.x + 18) " y" (vars.client.y + 60)
+    }
+}
+
+BuildGuide_NextArea(page, current)
+{
+    if !IsObject(page)
+        return ""
+    last := 0
+    for index, area in page.destinations
+        if (area = current)
+            last := index
+    return page.destinations[last + 1]
+}
+
+BuildGuide_AcquisitionText(acquisitions)
+{
+    global db
+    if !IsObject(acquisitions) || !acquisitions.Count()
+        return ""
+    catalog := db.leveltracker.gems, eol := Chr(13) Chr(10), text := "Gemas nesta etapa"
+    for _, entry in acquisitions
+    {
+        gem := BuildGuide_AcquisitionGemName(entry.gem, catalog)
+        quest := RegExReplace(entry.quest, "\d+$")
+        npc := entry.buy ? BuildGuide_GemSeller(entry.quest) : catalog._quests[entry.quest].npc
+        if entry.hideout
+            npc := "Lilly Roth", quest := "esconderijo"
+        else
+        {
+            StringUpper, quest, quest, T
+            StringUpper, npc, npc, T
+        }
+        text .= eol (entry.buy ? "Compre" : "Pegue") " " gem
+        text .= eol "  " (npc ? npc " · " : "") quest
+        if entry.buy
+            text .= eol "  " BuildGuide_GemCost(entry.gem, catalog[entry.gem].level)
+    }
+    return text
+}
+
+BuildGuide_AcquisitionGemName(key, catalog)
+{
+    global BuildGuide
+    for _, skillset in BuildGuide.guide.skills
+        for _, group in skillset.groups
+            for _, gem in group.gems
+                if (BuildGuide_GemKey(gem) = key)
+                    return gem.name
+    name := catalog[key].name ? catalog[key].name : key
+    StringUpper, name, name, T
+    return name
+}
+
+BuildGuide_LinkGroups(skillset, compact := false)
+{
+    if !IsObject(skillset) || !skillset.groups.Count()
+        return "Nenhum conjunto de gemas nesta etapa."
+    eol := Chr(13) Chr(10), text := compact ? "" : skillset.title
+    for _, group in skillset.groups
+    {
+        active := "", supports := ""
+        for _, gem in group.gems
+        {
+            label := gem.name (gem.count > 1 ? " ×" gem.count : "")
+            if gem.support
+                supports .= eol "  • " label
+            else
+                active .= (active ? " + " : "") label
+        }
+        heading := active ? active : "Grupo de suportes"
+        if !compact
+            heading .= " · " group.gems.Count() "L" (group.slot ? " · " BuildGuide_SlotLabel(group.slot) : "")
+        text .= (text ? eol eol : "") heading supports
+    }
+    return text
+}
+
+BGCompareTree()
+{
+    global BuildGuide, vars, settings
+    Gui, BGPanel: +OwnDialogs
+    FileSelectFile, path, 3,, Selecione o XML atualizado do personagem, XML do Path of Building (*.xml)
+    if ErrorLevel
+        return
+    FileRead, raw, *P65001 %path%
+    if ErrorLevel
+        return
+    try
+    {
+        snapshot := BuildGuide_Parse(raw)
+        if (snapshot.class != BuildGuide.guide.class)
+            throw Exception("A classe do personagem é diferente da build do perfil.")
+        native := vars.leveltracker["PoB" settings.leveltracker.profile]
+        if !native.trees.Count()
+            throw Exception("O perfil ativo precisa de uma árvore compatível.")
+        actual := snapshot.trees[snapshot.activeTree]
+        if !IsObject(actual)
+            throw Exception("O arquivo não tem uma árvore ativa para comparar.")
+        if !BuildGuide.treeTarget
+            BuildGuide_SyncTree()
+        index := BuildGuide.treeTarget ? BuildGuide.treeTarget : native["active tree"]
+        if !native.trees[index]
+            index := 1
+        if (native.trees[index].version != actual.version)
+            throw Exception("A árvore ativa do personagem usa uma versão diferente da etapa.")
+        if !Leveltracker_PobSkilltree("init " actual.version)
+            throw Exception("Os dados dessa versão da árvore não estão disponíveis.")
+        result := BuildGuide_CheckTreeProgress(native.trees, index, actual)
+    }
+    catch error
+    {
+        MsgBox, 48, Conferir passivas, % error.Message
+        return
+    }
+    BuildGuide.treeTarget := result.index
+    native["active tree"] := result.index
+    BuildGuide.levelingKey := ""
+    title := native.trees[result.index].title
+    if result.complete
+        text := "Última etapa concluída: " title "."
+    else if result.nextVersion
+        text := "Etapa concluída: " title ". A próxima exige um XML da versão " StrReplace(result.nextVersion, "_", ".") "."
+    else
+        text := (result.index > index ? "Etapa avançada: " : "Etapa atual: ") title "."
+            . Chr(10) "Faltam " result.missing " alocações e " result.remove " remoções."
+    MsgBox, 64, Conferir passivas, %text%
+}
+
+BuildGuide_CheckTreeProgress(trees, index, actual)
+{
+    global db
+    allocated := {}
+    for _, id in StrSplit(actual.nodes, ",")
+        if RegExMatch(id, "^\d+$")
+            allocated[id + 0] := true
+    count := trees.Count()
+    while (index <= count && trees[index].version = actual.version)
+    {
+        target := trees[index], expected := {}, missing := 0, remove := 0
+        definitions := db.leveltracker.trees[target.version].nodes
+        for _, id in target.nodes
+        {
+            node := definitions[id]
+            if (id = "" || (IsObject(node) && node.HasKey("classstartindex")) || node.isascendancystart)
+                continue
+            expected[id + 0] := true
+            if !allocated[id + 0]
+                missing++
+        }
+        for id, effect in target.masteries
+            if (allocated[id + 0] && actual.masteries[id + 0] != effect)
+                missing++
+        previous := trees[index - 1]
+        if (previous.version = target.version)
+            for _, id in previous.nodes
+            {
+                node := definitions[id]
+                if allocated[id + 0] && !expected[id + 0]
+                    && !(IsObject(node) && node.HasKey("classstartindex")) && !node.isascendancystart
+                    remove++
+            }
+        if missing || remove
+            return {index: index, missing: missing, remove: remove, complete: false}
+        if (index = count || trees[index + 1].version != actual.version)
+            return {index: index, complete: index = count, nextVersion: trees[index + 1].version, missing: 0, remove: 0}
+        index++
+    }
+    return {index: index, complete: false, missing: 0, remove: 0}
+}
+
+BuildGuide_SlotLabel(slot)
+{
+    static labels := {"Weapon": "Arma", "Weapon Swap": "Arma alternativa", "Helmet": "Elmo"
+        , "Body Armour": "Armadura", "Gloves": "Luvas", "Boots": "Botas", "Amulet": "Amuleto"
+        , "Ring": "Anel", "Belt": "Cinto", "Flask": "Frasco", "Quiver": "Aljava"}
+    if RegExMatch(slot, "^(.*?)( \d+)?$", part) && labels.HasKey(part1)
+        return labels[part1] part2
+    return slot
+}
+
+BuildGuide_RoutePortuguese(line)
+{
+    static labels := {"waypoint": "ponto de passagem", "portal": "portal", "town": "cidade"
+        , "quest": "missão", "lab": "Labirinto", "arena": "arena", "craft": "receita de fabricação"
+        , "in-out2": "entre e saia", "skip": "pule"}
+    static verbs := {"enter": "Entre em", "kill": "Derrote", "talk to": "Fale com", "return to": "Volte para"
+        , "activate": "Ative", "go to": "Vá para", "use": "Use", "buy gem": "Comprar gema", "buy": "Compre"
+        , "complete": "Conclua", "find": "Encontre", "pick up": "Pegue", "take": "Pegue", "optional": "Opcional"
+        , "find & kill": "Encontre e derrote", "find & enter": "Encontre e entre em", "follow": "Siga"
+        , "buy_gems": "Compre gemas", "relog": "Reconecte"}
+    pos := 1
+    while (pos := RegExMatch(line, "i)\(img:([^)]*)\)", icon, pos))
+    {
+        label := labels.HasKey(icon1) ? " " labels[icon1] " " : " "
+        line := SubStr(line, 1, pos - 1) label SubStr(line, pos + StrLen(icon))
+        pos += StrLen(label)
+    }
+    line := RegExReplace(line, "i)^\s*(?:leaguestart|twinkrun):\s*")
+    line := RegExReplace(line, "i)^\s*\(hint\)_*", "Dica: ")
+    line := RegExReplace(line, "i)\(color:[^)]*\)")
+    line := RegExReplace(line, "i)^\s*complete\s+Labirinto\s+trial\b", "Conclua a prova do Labirinto")
+    line := RegExReplace(line, "i)^\s*missão\s+(\w+)\s*:", "Fale com $1:")
+    line := RegExReplace(line, "i)^\s*ponto de passagem\s+to\s+", "Use o ponto de passagem para ")
+    line := RegExReplace(line, "i)^\s*portal\s+to\s+", "Use o portal para ")
+    if RegExMatch(line, "i)^(\s*(?:Dica:\s*)?)(find & kill|find & enter|talk to|return to|go to|buy gem|buy_gems|pick up|enter|kill|activate|use|buy|complete|find|take|optional|follow|relog)\b", verb)
+    {
+        StringLower, action, verb2
+        line := verb1 verbs[action] SubStr(line, StrLen(verb) + 1)
+    }
+    return line
+}
+
 BuildGuide_Text(guide, stage, tab)
 {
     global BuildGuide, db
@@ -846,23 +1295,23 @@ BuildGuide_Text(guide, stage, tab)
         previous := BuildGuide.stage > 1 ? guide.skills[guide.stages[BuildGuide.stage - 1].skill] : ""
         oldCounts := BuildGuide_GemCounts(previous)
         seen := {}
-        text := skillset.title
+        text := BuildGuide_LinkGroups(skillset), acquisitions := ""
         for index, group in skillset.groups
         {
-            text .= Chr(13) Chr(10) Chr(13) Chr(10) (group.title ? group.title " · " : "") (group.slot ? group.slot " · " : "") group.gems.Count() "L"
             for index, gem in group.gems
             {
                 seen[gem.name] := (seen.HasKey(gem.name) ? seen[gem.name] : 0) + gem.count
                 new := seen[gem.name] > (oldCounts.HasKey(gem.name) ? oldCounts[gem.name] : 0)
-                text .= Chr(13) Chr(10) (new ? "+ " : "  ") (gem.support ? "Suporte · " : "") gem.name (gem.count > 1 ? " ×" gem.count : "")
                 if new
                 {
                     acquisition := BuildGuide_GemSource(gem, guide.class, db.leveltracker.gems)
                     if acquisition
-                        text .= Chr(13) Chr(10) "    " acquisition
+                        acquisitions .= Chr(13) Chr(10) "+ " gem.name Chr(13) Chr(10) "    " acquisition
                 }
             }
         }
+        if acquisitions
+            text .= Chr(13) Chr(10) Chr(13) Chr(10) "Gemas para obter" acquisitions
         current := BuildGuide_GemCounts(skillset)
         for name, count in oldCounts
             if (count > (copies := current.HasKey(name) ? current[name] : 0))
@@ -900,6 +1349,33 @@ BuildGuide_GemCounts(skillset)
     return counts
 }
 
+BuildGuide_GemSeller(quest)
+{
+    static sellers := {"enemy at the gate": "Nessa", "mercy mission": "Nessa", "breaking some eggs1": "Nessa"
+        , "breaking some eggs2": "Nessa", "the caged brute1": "Nessa", "the caged brute2": "Nessa"
+        , "the siren's cadence": "Nessa", "intruders in black": "Yeena", "sharp and cruel": "Yeena"
+        , "lost in love": "Clarissa", "sever the right hand": "Clarissa", "a fixture of fate": "Siosa"
+        , "breaking the seal": "Petarus e Vanja", "the eternal nightmare": "Petarus e Vanja", "fallen from grace": "Lilly Roth"}
+    return sellers[quest]
+}
+
+BuildGuide_GemKey(gem)
+{
+    key := gem.name
+    StringLower, key, key
+    return key (gem.support && !RegExMatch(key, " support$") ? " support" : "")
+}
+
+BuildGuide_GemCost(gem, level)
+{
+    global BuildGuide
+    path := BuildGuide.directory "\precos.ini"
+    IniRead, price, %path%, Preços, %gem%, %A_Space%
+    if (price = "")
+        price := BuildGuide_GemPrice(level)
+    return price != "" ? price : "preço a confirmar"
+}
+
 BuildGuide_GemSource(gem, class, catalog)
 {
     global BuildGuide
@@ -913,34 +1389,26 @@ BuildGuide_GemSource(gem, class, catalog)
         if !IsObject(data)
             return "Variante especial · consulte a origem no jogo"
     }
-    lookup := gemName (gem.support && !RegExMatch(gemName, "i) Support$") ? " support" : "")
+    lookup := BuildGuide_GemKey(gem)
     data := catalog[lookup]
     if !IsObject(data)
         return "Disponibilidade a confirmar"
     reward := "", purchase := "", rank := 99
-    static sellers := {"enemy at the gate": "Nessa", "mercy mission": "Nessa", "breaking some eggs1": "Nessa"
-        , "breaking some eggs2": "Nessa", "the caged brute1": "Nessa", "the caged brute2": "Nessa"
-        , "the siren's cadence": "Nessa", "intruders in black": "Yeena", "sharp and cruel": "Yeena"
-        , "lost in love": "Clarissa", "sever the right hand": "Clarissa", "a fixture of fate": "Siosa"
-        , "breaking the seal": "Petarus e Vanja", "the eternal nightmare": "Petarus e Vanja", "fallen from grace": "Lilly Roth"}
     for quest, options in data.quests
     {
         details := catalog._quests[quest]
         if !details.act
             continue
         questName := RegExReplace(quest, "\d+$")
-        npc := sellers[quest]
+        StringUpper, questName, questName, T
+        npc := BuildGuide_GemSeller(quest)
         if IsObject(options.quest) && BuildGuide_ClassAllowed(options.quest, class) && (!IsObject(reward) || details.act < reward.act)
             reward := {act: details.act, text: "Recompensa · Ato " details.act " · " details.npc " · " questName}
         if (npc != "") && IsObject(options.vendor) && BuildGuide_ClassAllowed(options.vendor, class) && details.act < rank
         {
             rank := details.act
             purchase := "Comprar · Ato " details.act " · " npc " · " questName
-            path := BuildGuide.directory "\precos.ini"
-            IniRead, price, %path%, Preços, %lookup%, %A_Space%
-            if (price = "")
-                price := BuildGuide_GemPrice(data.level)
-            purchase .= price != "" ? " · " price : " · preço a confirmar"
+            purchase .= " · " BuildGuide_GemCost(lookup, data.level)
         }
     }
     result := reward.text
@@ -1012,9 +1480,11 @@ BuildGuide_ItemLabel(item)
 BuildGuide_ItemText(slot, item, id)
 {
     priority := BuildGuide_Priority(item, id)
-    line := slot "  |  " BuildGuide_ItemLabel(item) "  [" item.rarity "]"
+    static rarities := {"NORMAL": "Normal", "MAGIC": "Mágico", "RARE": "Raro", "UNIQUE": "Único", "RELIC": "Relíquia"}
+    rarity := rarities.HasKey(item.rarity) ? rarities[item.rarity] : item.rarity
+    line := BuildGuide_SlotLabel(slot) "  |  " BuildGuide_ItemLabel(item) "  [" rarity "]"
     if item.sockets
-        line .= Chr(13) Chr(10) "Sockets: " item.sockets
+        line .= Chr(13) Chr(10) "Encaixes: " item.sockets
     if priority.confirmed && priority.mods.Count() && (item.rarity = "UNIQUE" || item.rarity = "RELIC")
         line .= Chr(13) Chr(10) "Mod principal: " priority.mods[1]
     if priority.mods.Count()
@@ -1035,7 +1505,7 @@ BuildGuide_Edit()
         if !IsObject(item)
             continue
         ids.Push(slot.id)
-        labels .= StrReplace(slot.name " · " BuildGuide_ItemLabel(item), "|", "/") "|"
+        labels .= StrReplace(BuildGuide_SlotLabel(slot.name) " · " BuildGuide_ItemLabel(item), "|", "/") "|"
     }
     for node, id in BuildGuide.guide.trees[stage.tree].sockets
     {
@@ -1172,6 +1642,7 @@ BuildGuide_TreeHold()
 {
     if !BuildGuide_ShowTree()
         return
+    BuildGuide_UpdateLeveling()
     SetTimer, BuildGuide_TreeRelease, 30
     KeyWait, F8
     BuildGuide_TreeRelease()
@@ -1198,11 +1669,16 @@ BuildGuide_ShowTree()
 BuildGuide_SyncTree()
 {
     global BuildGuide, vars, settings
+    profile := settings.leveltracker.profile
+    native := vars.leveltracker["PoB" profile]
+    if BuildGuide.treeTarget && IsObject(native.trees[BuildGuide.treeTarget])
+    {
+        native["active tree"] := BuildGuide.treeTarget
+        return
+    }
     tree := BuildGuide.guide.trees[BuildGuide.guide.stages[BuildGuide.stage].tree]
     if !IsObject(tree)
         return
-    profile := settings.leveltracker.profile
-    native := vars.leveltracker["PoB" profile]
     for index, candidate in native.trees
         if (candidate.version = tree.version && BuildGuide_JoinNodes(candidate.nodes) = tree.nodes)
         {
@@ -1305,7 +1781,7 @@ BuildGuide_Focused()
 BuildGuide_UpdateClock()
 {
     global BuildGuide, vars
-    if !IsObject(BuildGuide.run) || !BuildGuide_Focused()
+    if !IsObject(BuildGuide.run) || !BuildGuide_Focused() || BuildGuide.leveling
     {
         if BuildGuide.clock
             Gui, BGClock: Hide
@@ -1350,25 +1826,25 @@ BuildGuide_Tick()
     if (act != BuildGuide.lastAct && act >= 1 && act <= 10)
     {
         old := BuildGuide.stage
-        if (act > BuildGuide.lastAct)
-        {
-            BuildGuide.manual := 0
-            BuildGuide_SetAct(act)
-            BuildGuide.lastAct := act
-        }
+        BuildGuide.manual := 0
+        BuildGuide_SetAct(act)
+        BuildGuide.lastAct := act
         if (old != BuildGuide.stage && BuildGuide.panel && DllCall("IsWindowVisible", "Ptr", BuildGuide.panel))
             BuildGuide_DrawPanel()
     }
     run := BuildGuide.run
     if IsObject(run)
     {
-        BuildGuide_AdvanceTime(run, A_TickCount, vars.log.areaID, vars.log.areaname, vars.log.areaseed
+        BuildGuide_AdvanceTime(run, A_TickCount, vars.log.areaID, BuildGuide_AreaName(vars.log.areaID), vars.log.areaseed
             , BuildGuide_Focused())
         if !run.saved && vars.log.act = 11 && run.splits.Count()
             BuildGuide_Finish(true)
     }
+    if BuildGuide.leveling && BuildGuide_Focused()
+        BuildGuide_LoadRoute()
     BuildGuide_UpdateRoute()
     BuildGuide_UpdateClock()
+    BuildGuide_UpdateLeveling()
     if (BuildGuide.panel && DllCall("IsWindowVisible", "Ptr", BuildGuide.panel))
     {
         GuiControl, BGPanel:, BGTime, % BuildGuide_TimeText()
@@ -1423,7 +1899,7 @@ BuildGuide_Finish(automatic := false)
         return
     if !automatic && vars.log.act != 11
     {
-        MsgBox, 36, Finalizar run, Salvar como run parcial?
+        MsgBox, 36, Finalizar campanha, Salvar como tentativa parcial?
         IfMsgBox, No
             return
     }
@@ -1531,9 +2007,9 @@ F11::BuildGuide_ChooseTab(5)
 ]::BuildGuide_StepLayout(1)
 #If
 
-BuildGuide_SelfTest(xmlPath, report)
+BuildGuide_SelfTest(xmlPath, report, logPath := "", profileDirectory := "")
 {
-    global BuildGuide, db
+    global BuildGuide, db, vars, settings
     try
     {
         FileRead, raw, *P65001 %xmlPath%
@@ -1574,6 +2050,24 @@ BuildGuide_SelfTest(xmlPath, report)
         BuildGuide_AdvanceTime(run, 1750, "second", "B", 2, false)
         if (run.total != 500 || run.splits[1].ms != 500 || run.zone != "second")
             throw Exception("Zone split timing failed.")
+        actual := {version: "3_29", nodes: "2,3", masteries: {3: 11}}
+        specs := [{version: "3_29", nodes: [1, 2, 3], masteries: {3: 11}}
+            , {version: "3_29", nodes: [1, 3, 4], masteries: {3: 11}}]
+        db.leveltracker.trees := {"3_29": {nodes: {1: {classstartindex: 0}}}}
+        progress := BuildGuide_CheckTreeProgress(specs, 1, actual)
+        if (progress.index != 2 || progress.missing != 1 || progress.remove != 1 || progress.complete)
+            throw Exception("A comparação de passivas não avançou para o próximo objetivo.")
+        actual.nodes := "3,4", actual.masteries[3] := 10
+        progress := BuildGuide_CheckTreeProgress(specs, 2, actual)
+        if (progress.complete || progress.missing != 1 || progress.remove != 0)
+            throw Exception("Uma maestria divergente foi aceita.")
+        actual.masteries[3] := 11
+        if !BuildGuide_CheckTreeProgress(specs, 2, actual).complete
+            throw Exception("A última árvore deveria estar concluída.")
+        links := BuildGuide_LinkGroups({groups: [{gems: [{name: "Arcane Surge", support: true, count: 1}
+            , {name: "Essence Drain", support: false, count: 1}]}]}, true)
+        if (links != "Essence Drain" Chr(13) Chr(10) "  • Arcane Surge")
+            throw Exception("As gemas não foram agrupadas como habilidade e suportes.")
         BuildGuide_DrawPanel(true)
         GuiControlGet, panelText, BGPanel:, BGText
         if !InStr(panelText, "Essence Drain")
@@ -1582,14 +2076,110 @@ BuildGuide_SelfTest(xmlPath, report)
         GuiControlGet, panelText, BGPanel:, BGText
         if !InStr(panelText, "Mods do PoB")
             throw Exception("Equipment tab did not render.")
+        vars := {hwnd: {}, client: {x: 0, y: 0, w: 1280, h: 720}, log: {act: 1, areaID: "1_1_1"}
+            , leveltracker: {guide: {progress: 0}}, lang: Lang_Load("english\UI.txt")}
+        for key, value in Lang_Load("english\client.txt")
+            vars.lang[key] := value
+        settings := {general: {lang: "english", lang_client: "english"}
+            , leveltracker: {guide: {info: {gems: 1, leaguestart: 1}}}}
+        DB_Load("leveltracker")
+        route := vars.leveltracker.guide
+        route.import := [["kill Hillock", "enter areaid1_1_town"], ["enter areaid1_1_2"]
+            , ["activate (img:waypoint)"], ["enter areaid1_1_3"], ["enter areaid1_1_town"]]
+        route.acquisitions := [[{gem: "essence drain", quest: "the caged brute2", buy: 1}]]
+        if (BuildGuide_RouteArrival("1_1_town", "1_1_1") != 2)
+            throw Exception("Entrar na cidade não avançou para a etapa seguinte.")
+        route.progress := 1
+        if BuildGuide_RouteArrival("1_1_town", "1_1_3")
+            throw Exception("Voltar à cidade adiantou a rota.")
+        route.progress := 2
+        if (BuildGuide_RouteArrival("1_1_3", "1_1_2") != 5)
+            throw Exception("A chegada não passou pelo objetivo sem destino.")
+        route.progress := 0
+        BuildGuide.preferenceFile := report ".ini"
+        BuildGuide.routeProfile := 1, BuildGuide.routeLastArea := "1_1_1"
+        Gui, BGTestGame: New, +Hwndgame, Janela de teste
+        Gui, BGTestGame: Show, w300 h180
+        vars.hwnd.poe_client := game
+        vars.log.file_location := "Client.txt"
+        BuildGuide.leveling := true
+        BuildGuide_Tick()
+        GuiControlGet, compactGems, BGLeveling:, BGLevelGems
+        GuiControlGet, compactRoute, BGLeveling:, BGLevelRoute
+        GuiControlGet, compactArea, BGLeveling:, BGLevelArea
+        GuiControlGet, compactNext, BGLeveling:, BGLevelDestination
+        if !BuildGuide.leveling || !DllCall("IsWindowVisible", "Ptr", BuildGuide.levelingHwnd)
+            || !InStr(compactGems, "Compre Essence Drain") || !InStr(compactGems, "Nessa")
+            || !InStr(compactGems, "Orb of Transmutation") || !InStr(compactRoute, "Derrote Hillock")
+            || !InStr(compactArea, "Twilight Strand") || !InStr(compactNext, "Lioneye's Watch")
+            || IsObject(BuildGuide.run)
+            throw Exception("O painel compacto não mostrou a rota e as gemas automaticamente.")
+        BGStartLeveling()
+        if !IsObject(BuildGuide.run)
+            throw Exception("Iniciar leveling não ligou o cronômetro.")
+        Gui, BGTestAway: New, +Hwndaway, Teste fora do jogo
+        Gui, BGTestAway: Show, w200 h100
+        BuildGuide_UpdateLeveling()
+        if DllCall("IsWindowVisible", "Ptr", BuildGuide.levelingHwnd)
+            throw Exception("O painel compacto permaneceu visível fora do jogo.")
+        Gui, BGTestAway: Destroy
+        WinActivate, ahk_id %game%
+        BuildGuide_UpdateLeveling()
+        if !DllCall("IsWindowVisible", "Ptr", BuildGuide.levelingHwnd)
+            throw Exception("O painel compacto não voltou ao focar o jogo.")
+        BGHideLeveling()
+        if DllCall("IsWindowVisible", "Ptr", BuildGuide.levelingHwnd)
+            || LLK_IniRead(BuildGuide.preferenceFile, "Overlay", "campanha", 1)
+            throw Exception("O painel compacto permaneceu visível.")
+        FileDelete, % BuildGuide.preferenceFile
+        Gui, BGTestGame: Destroy
+        Gui, BGLeveling: Destroy
         Gui, BGPanel: Destroy
+        if logPath
+        {
+            vars.log := {file_location: logPath, latest_location: logPath ".empty"}
+            vars.general := {}
+            Init_log()
+            if !vars.log.areaID || !vars.log.areaname || !vars.log.act
+                throw Exception("O log do PoE não identificou a zona e o ato na inicialização.")
+            if (vars.log.file.Tell() != vars.log.file.Length)
+                throw Exception("A leitura ao vivo não continuou pelo Client.txt.")
+            logResult := " Client.txt: " vars.log.areaname " (Ato " vars.log.act ")."
+            vars.log.file.Close()
+        }
+        if profileDirectory
+        {
+            ini := IniBatchRead(profileDirectory "\ini\leveling guide.ini")
+            settings.leveltracker.guide.info := ini.info
+            settings.leveltracker.guide.info.gems := 1
+            vars.leveltracker["PoB"] := {class: ini.pob.class, gems: JSON.Load(ini.pob.gems)
+                , vendors: ini.pob.vendors ? JSON.Load(ini.pob.vendors) : {}}
+            SetWorkingDir, %profileDirectory%
+            try Leveltracker_Load()
+            finally
+                SetWorkingDir, %A_ScriptDir%
+            route := vars.leveltracker.guide, acquisitionCount := 0
+            if (route.acquisitions.Count() != route.import.Count())
+                throw Exception("A lista de gemas não acompanhou as etapas da rota.")
+            for _, entries in route.acquisitions
+                acquisitionCount += entries.Count()
+            if (!route.import.Count() || !acquisitionCount)
+                throw Exception("O perfil importado não gerou compras nem recompensas.")
+            current := BuildGuide_RouteStep(route.progress + 1)
+            if vars.log.areaID && IsObject(current) && (arrival := BuildGuide_RouteArrival(vars.log.areaID, ""))
+                route.progress := arrival - 1
+            current := BuildGuide_RouteStep(route.progress + 1)
+            if !IsObject(current) || !current.lines.Count()
+                throw Exception("O perfil importado não encontrou uma etapa para a zona do log.")
+            routeResult := " " route.import.Count() " páginas; " acquisitionCount " aquisições; etapa " current.index "."
+        }
         temp := report ".write"
         BuildGuide_Write(temp, "Joia · preço")
         FileRead, written, *P65001 %temp%
         FileDelete, %temp%
         if (written != "Joia · preço")
             throw Exception("UTF-8 cache write failed.")
-        output := "PASS " guide.stages.Count() " stages; " guide.trees.Count() " trees; " guide.sets.Count() " gear sets."
+        output := "PASS " guide.stages.Count() " stages; " guide.trees.Count() " trees; " guide.sets.Count() " gear sets." logResult routeResult
     }
     catch error
         output := "FAIL " error.Message " (line " error.Line ", " error.Extra ")"

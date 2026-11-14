@@ -16,7 +16,7 @@ ListLines, Off
 SetWorkingDir %A_ScriptDir%
 If (A_Args[1] = "--test-build-guide")
 {
-    BuildGuide_SelfTest(A_Args[2], A_Args[3])
+    BuildGuide_SelfTest(A_Args[2], A_Args[3], A_Args[4], A_Args[5])
     ExitApp
 }
 DllCall("SetThreadDpiAwarenessContext", "ptr", -3, "ptr")
@@ -1231,7 +1231,11 @@ Startup()
 	vars.general.runcheck := A_TickCount ;save when the client was last running (for purposes of killing the script after X minutes)
 
 	If vars.log.file_location
+	{
+		If !vars.poe_version
+			DB_Load("leveltracker")
 		Init_log(), LLK_Log("accessed required information from log-file")
+	}
 }
 
 StringReceive(wParam, string) ;based on example #4 on https://www.autohotkey.com/docs/v1/lib/OnMessage.htm
